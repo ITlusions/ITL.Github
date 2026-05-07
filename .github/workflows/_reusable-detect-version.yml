@@ -39,6 +39,9 @@ on:
       image-tag:
         description: "Docker-safe version (no +), e.g. 0.1.3 or 0.1.2-feature-login.42-abc1234"
         value: ${{ jobs.detect.outputs.image-tag }}
+      python-version:
+        description: "PEP 440 version for Python wheel, e.g. 0.1.3 or 0.1.2.dev42+abc1234"
+        value: ${{ jobs.detect.outputs.python-version }}
       tag:
         description: "Prefixed tag for main, e.g. v0.1.3 (empty on non-main)"
         value: ${{ jobs.detect.outputs.tag }}
@@ -51,10 +54,11 @@ jobs:
     name: Detect version
     runs-on: ubuntu-latest
     outputs:
-      version:   ${{ steps.version.outputs.version }}
-      image-tag: ${{ steps.version.outputs.image-tag }}
-      tag:       ${{ steps.version.outputs.tag }}
-      is-release: ${{ steps.version.outputs.is-release }}
+      version:        ${{ steps.version.outputs.version }}
+      image-tag:      ${{ steps.version.outputs.image-tag }}
+      python-version: ${{ steps.version.outputs.python-version }}
+      tag:            ${{ steps.version.outputs.tag }}
+      is-release:     ${{ steps.version.outputs.is-release }}
 
     steps:
       - name: Checkout (full history for tags)
@@ -89,6 +93,7 @@ jobs:
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then
             VERSION="$NEXT"
             IMAGE_TAG="$NEXT"
+            PYTHON_VERSION="$NEXT"
             TAG="${PREFIX}${NEXT}"
             IS_RELEASE="true"
           else
@@ -101,14 +106,16 @@ jobs:
               | sed 's/^-//;s/-$//')
             VERSION="${CURRENT}-${BRANCH_SLUG}.${RUN}+${SHA_SHORT}"
             IMAGE_TAG="${CURRENT}-${BRANCH_SLUG}.${RUN}-${SHA_SHORT}"
+            PYTHON_VERSION="${CURRENT}.dev${RUN}+${SHA_SHORT}"
             TAG=""
             IS_RELEASE="false"
           fi
 
-          echo "version=$VERSION"     >> $GITHUB_OUTPUT
-          echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "tag=$TAG"             >> $GITHUB_OUTPUT
-          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION"             >> $GITHUB_OUTPUT
+          echo "image-tag=$IMAGE_TAG"         >> $GITHUB_OUTPUT
+          echo "python-version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG"                     >> $GITHUB_OUTPUT
+          echo "is-release=$IS_RELEASE"       >> $GITHUB_OUTPUT
 
           echo "Branch : $GITHUB_REF_NAME"
           echo "Version: $VERSION"

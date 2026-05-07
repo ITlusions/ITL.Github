@@ -85,11 +85,19 @@ on:
         required: false
         type: string
         default: ""
+      version:
+        description: "PEP 440 version to inject into the wheel (e.g. 0.1.3 or 0.1.2.dev7+abc1234). Empty = use pyproject.toml as-is."
+        required: false
+        type: string
+        default: ""
 
     outputs:
       artifact-name:
         description: "Name of the uploaded wheel artifact"
         value: ${{ jobs.ci.outputs.artifact-name }}
+      version:
+        description: "Version that was built into the wheel"
+        value: ${{ jobs.ci.outputs.version }}
 
 jobs:
   ci:
@@ -97,6 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       artifact-name: ${{ inputs.artifact-name }}
+      version: ${{ steps.set-version.outputs.version }}
 
     services:
       postgres:
@@ -118,6 +127,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Set version ${{ inputs.version }}
+        id: set-version
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -n "$VERSION" ] && [ -f "pyproject.toml" ]; then
+            sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+            echo "Patched pyproject.toml version → $VERSION"
+          elif [ -z "$VERSION" ]; then
+            VERSION=$(grep -m1 '^version' pyproject.toml | sed 's/version = "//;s/"//' || echo "0.0.0")
+            echo "Using existing pyproject.toml version: $VERSION"
+          fi
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5
