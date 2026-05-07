@@ -3,6 +3,9 @@ name: Docker Build + Push (reusable)
 # ---------------------------------------------------------------------------
 # Reusable workflow: build and push Docker image to a container registry
 #
+# Supports an optional dependency repo checked out alongside the main repo
+# (required for projects with a multi-repo Docker build context).
+#
 # Usage:
 #   jobs:
 #     docker:
@@ -10,9 +13,11 @@ name: Docker Build + Push (reusable)
 #       with:
 #         image-name: "ghcr.io/itlusions/myapp"
 #         tag: "1.2.3"
+#         checkout-path: "ITL.BrainCell.Api"
+#         dependency-repo: "ITlusions/ITL.BrainCell"
+#         dependency-path: "ITL.BrainCell"
 #       secrets:
-#         registry-username: ${{ secrets.GHCR_USERNAME }}
-#         registry-password: ${{ secrets.GHCR_TOKEN }}
+#         registry-password: ${{ secrets.GH_PAT }}
 # ---------------------------------------------------------------------------
 on:
   workflow_call:
@@ -60,6 +65,26 @@ on:
         required: false
         type: string
         default: ""
+      checkout-path:
+        description: "Directory to check out this repo into (empty = repo root)"
+        required: false
+        type: string
+        default: ""
+      dependency-repo:
+        description: "Optional dependency repo to check out, e.g. ITlusions/ITL.BrainCell"
+        required: false
+        type: string
+        default: ""
+      dependency-ref:
+        description: "Ref for the dependency repo (tag or branch)"
+        required: false
+        type: string
+        default: "main"
+      dependency-path:
+        description: "Directory to check out the dependency into"
+        required: false
+        type: string
+        default: "dependency"
 
     secrets:
       registry-username:
@@ -90,11 +115,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          path: ${{ inputs.checkout-path }}
+
+      - name: Checkout ${{ inputs.dependency-repo }}
+        if: inputs.dependency-repo != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.dependency-repo }}
+          token: ${{ secrets.registry-password || secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.dependency-ref }}
+          path: ${{ inputs.dependency-path }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login naar ${{ inputs.registry }}
+      - name: Login to ${{ inputs.registry }}
         if: inputs.push
         uses: docker/login-action@v3
         with:
@@ -111,12 +146,12 @@ jobs:
             type=raw,value=${{ inputs.tag }}
             type=raw,value=latest,enable=${{ !contains(inputs.tag, '-') }}
 
-      - name: Build en push
+      - name: Build and push
         id: build
         uses: docker/build-push-action@v6
         with:
-          context: ${{ inputs.context }}
-          file: ${{ inputs.dockerfile }}
+          context: ${{ inputs.checkout-path != '' && '.' || inputs.context }}
+          file: ${{ inputs.checkout-path != '' && format('{0}/{1}', inputs.checkout-path, inputs.dockerfile) || inputs.dockerfile }}
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}

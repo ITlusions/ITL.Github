@@ -1,0 +1,164 @@
+name: CI — Docker project (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: lint (ruff) → test (pytest) → Docker build validate
+# Designed for projects whose Docker build context spans multiple repos
+# checked out side-by-side (e.g. an API that depends on a core library).
+#
+# Checkout layout on the runner:
+#   <checkout-path>/      ← this repo (default: repo name)
+#   <dependency-path>/    ← optional dependency repo (default: dep repo name)
+#
+# The Docker build context is the parent directory containing both.
+#
+# Usage:
+#   jobs:
+#     ci:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-docker.yml@main
+#       with:
+#         image-name: "ghcr.io/itlusions/braincell-api"
+#         checkout-path: "ITL.BrainCell.Api"
+#         dependency-repo: "ITlusions/ITL.BrainCell"
+#         dependency-path: "ITL.BrainCell"
+#       secrets:
+#         gh-pat: ${{ secrets.GH_PAT }}
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "Full image name for docker build, e.g. ghcr.io/itlusions/myapp"
+        required: true
+        type: string
+      python-version:
+        description: "Python version"
+        required: false
+        type: string
+        default: "3.12"
+      ref:
+        description: "Git ref to check out for this repo"
+        required: false
+        type: string
+        default: ""
+      checkout-path:
+        description: "Directory name to check out this repo into"
+        required: false
+        type: string
+        default: "app"
+      ruff-src:
+        description: "Directory for ruff to scan (relative to checkout-path)"
+        required: false
+        type: string
+        default: "src/"
+      test-path:
+        description: "Directory for pytest to scan (relative to checkout-path)"
+        required: false
+        type: string
+        default: "tests/"
+      dockerfile:
+        description: "Path to Dockerfile (relative to checkout-path)"
+        required: false
+        type: string
+        default: "Dockerfile"
+      dependency-repo:
+        description: "Optional dependency repo to check out, e.g. ITlusions/ITL.BrainCell"
+        required: false
+        type: string
+        default: ""
+      dependency-ref:
+        description: "Ref for the dependency repo (tag or branch)"
+        required: false
+        type: string
+        default: "main"
+      dependency-path:
+        description: "Directory name to check out the dependency into"
+        required: false
+        type: string
+        default: "dependency"
+
+    secrets:
+      gh-pat:
+        description: "PAT for cross-repo checkout of dependency-repo"
+        required: false
+
+    outputs:
+      image-digest:
+        description: "Docker image digest from the validate build"
+        value: ${{ jobs.ci.outputs.image-digest }}
+
+jobs:
+  ci:
+    name: Lint / Test / Docker validate
+    runs-on: ubuntu-latest
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          path: ${{ inputs.checkout-path }}
+
+      - name: Checkout ${{ inputs.dependency-repo }}
+        if: inputs.dependency-repo != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.dependency-repo }}
+          token: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.dependency-ref }}
+          path: ${{ inputs.dependency-path }}
+
+      - name: Setup Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest pytest-asyncio pytest-cov
+          if [ -n "${{ inputs.dependency-repo }}" ] && [ -f "${{ inputs.dependency-path }}/pyproject.toml" ]; then
+            pip install -e ./${{ inputs.dependency-path }}
+          fi
+          pip install -e ./${{ inputs.checkout-path }}
+
+      - name: Lint (ruff)
+        working-directory: ${{ inputs.checkout-path }}
+        run: ruff check ${{ inputs.ruff-src }}
+
+      - name: Run tests
+        working-directory: ${{ inputs.checkout-path }}
+        run: |
+          if [ -d "${{ inputs.test-path }}" ]; then
+            pytest ${{ inputs.test-path }} \
+              --tb=short \
+              --cov=src \
+              --cov-report=term-missing \
+              --cov-report=xml:coverage.xml \
+              -m "not integration"
+          else
+            echo "No ${{ inputs.test-path }} directory found — skipped"
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{ inputs.checkout-path }}/coverage.xml
+          if-no-files-found: ignore
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker build (validate — no push)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ inputs.checkout-path }}/${{ inputs.dockerfile }}
+          push: false
+          tags: ${{ inputs.image-name }}:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
