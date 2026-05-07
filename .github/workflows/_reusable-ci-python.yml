@@ -1,0 +1,173 @@
+name: CI — Python (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: lint (ruff) → test (pytest) → wheel build
+#
+# Usage:
+#   jobs:
+#     ci:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+#       with:
+#         python-version: "3.12"
+#         artifact-name: "myproject-wheel"
+#         postgres-enabled: true
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version"
+        required: false
+        type: string
+        default: "3.12"
+      ref:
+        description: "Git ref to check out (branch or tag). Empty = default checkout."
+        required: false
+        type: string
+        default: ""
+      artifact-name:
+        description: "Name of the wheel artifact to upload"
+        required: false
+        type: string
+        default: "python-wheel"
+      working-directory:
+        description: "Working directory for ruff/pytest/build (relative to repo root)"
+        required: false
+        type: string
+        default: "."
+      ruff-src:
+        description: "Directory for ruff to scan"
+        required: false
+        type: string
+        default: "src/"
+      test-path:
+        description: "Directory for pytest to scan"
+        required: false
+        type: string
+        default: "tests/"
+      test-markers-exclude:
+        description: "pytest -m expression to exclude, e.g. 'integration'"
+        required: false
+        type: string
+        default: "integration"
+      postgres-enabled:
+        description: "Start a PostgreSQL service container"
+        required: false
+        type: boolean
+        default: false
+      postgres-user:
+        description: "PostgreSQL username"
+        required: false
+        type: string
+        default: "app"
+      postgres-password:
+        description: "PostgreSQL password"
+        required: false
+        type: string
+        default: "app_test"
+      postgres-db:
+        description: "PostgreSQL database name"
+        required: false
+        type: string
+        default: "app_test"
+      postgres-port:
+        description: "PostgreSQL port"
+        required: false
+        type: string
+        default: "5432"
+      requirements-file:
+        description: "Path to requirements file for pip cache"
+        required: false
+        type: string
+        default: "requirements.txt"
+      extra-install:
+        description: "Additional pip install command (e.g. 'pip install -e .')"
+        required: false
+        type: string
+        default: ""
+
+    outputs:
+      artifact-name:
+        description: "Name of the uploaded wheel artifact"
+        value: ${{ jobs.ci.outputs.artifact-name }}
+
+jobs:
+  ci:
+    name: Lint / Test / Build wheel
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ inputs.artifact-name }}
+
+    services:
+      postgres:
+        image: ${{ inputs.postgres-enabled && 'postgres:16-alpine' || '' }}
+        env:
+          POSTGRES_USER: ${{ inputs.postgres-user }}
+          POSTGRES_PASSWORD: ${{ inputs.postgres-password }}
+          POSTGRES_DB: ${{ inputs.postgres-db }}
+        ports:
+          - ${{ inputs.postgres-port }}:5432
+        options: >-
+          --health-cmd "pg_isready -U ${{ inputs.postgres-user }} -d ${{ inputs.postgres-db }}"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: pip
+          cache-dependency-path: ${{ inputs.requirements-file }}
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest pytest-asyncio pytest-cov build
+          if [ -f "${{ inputs.requirements-file }}" ]; then
+            pip install -r "${{ inputs.requirements-file }}"
+          fi
+          if [ -n "${{ inputs.extra-install }}" ]; then
+            ${{ inputs.extra-install }}
+          fi
+
+      - name: Lint (ruff)
+        working-directory: ${{ inputs.working-directory }}
+        run: ruff check ${{ inputs.ruff-src }}
+
+      - name: Run tests
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          pytest ${{ inputs.test-path }} \
+            --tb=short \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            -m "not ${{ inputs.test-markers-exclude }}" \
+            || true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{ inputs.working-directory }}/coverage.xml
+          if-no-files-found: ignore
+
+      - name: Build wheel
+        working-directory: ${{ inputs.working-directory }}
+        run: python -m build --wheel --outdir dist/
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/dist/*.whl
+          if-no-files-found: error

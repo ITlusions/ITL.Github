@@ -1,0 +1,122 @@
+name: Publish — PyPI (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: publish Python wheel to PyPI via OIDC Trusted Publishing
+#
+# Requirements:
+#   - PyPI Trusted Publisher configured for this workflow
+#   - GitHub environment configured (e.g. "production")
+#
+# Usage:
+#   jobs:
+#     publish:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-publish-pypi.yml@main
+#       with:
+#         artifact-name: "myproject-wheel"
+#         environment: "production"
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: "Name of the wheel artifact (uploaded by CI)"
+        required: false
+        type: string
+        default: "python-wheel"
+      ci-workflow-name:
+        description: "Name of the CI workflow to download the artifact from"
+        required: false
+        type: string
+        default: "CI — Branch push"
+      commit-sha:
+        description: "Commit SHA to search the CI artifact for"
+        required: true
+        type: string
+      environment:
+        description: "GitHub environment name for the release gate"
+        required: false
+        type: string
+        default: "production"
+      python-version:
+        description: "Python version for twine"
+        required: false
+        type: string
+        default: "3.12"
+      fallback-build:
+        description: "Build wheel from source if artifact is not found"
+        required: false
+        type: boolean
+        default: true
+      working-directory:
+        description: "Working directory for fallback build"
+        required: false
+        type: string
+        default: "."
+
+    outputs:
+      published:
+        description: "true if wheel was published"
+        value: ${{ jobs.publish.outputs.published }}
+
+jobs:
+  publish:
+    name: Publish → PyPI
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+
+    permissions:
+      contents: read
+      actions: read
+      id-token: write   # required for OIDC Trusted Publishing
+
+    steps:
+      - name: Find CI run for commit ${{ inputs.commit-sha }}
+        id: find-run
+        run: |
+          RUN_ID=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow "${{ inputs.ci-workflow-name }}" \
+            --commit "${{ inputs.commit-sha }}" \
+            --status success \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')
+          if [ -n "$RUN_ID" ]; then
+            echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
+            echo "CI run found: $RUN_ID"
+          else
+            echo "run-id=" >> $GITHUB_OUTPUT
+            echo "No successful CI run found — wheel will be built from source"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download wheel artifact
+        if: steps.find-run.outputs.run-id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          run-id: ${{ steps.find-run.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: dist/
+
+      # --- Fallback: build wheel if artifact is not available ---
+      - name: Checkout (fallback build)
+        if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
+        uses: actions/checkout@v4
+
+      - name: Build wheel (fallback)
+        if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          pip install build
+          python -m build --wheel --outdir dist/
+
+      - name: Publish to PyPI (OIDC)
+        id: publish
+        run: |
+          pip install twine
+          twine upload dist/*.whl --verbose
+          echo "published=true" >> $GITHUB_OUTPUT
+          echo "published=true" >> $GITHUB_OUTPUT

@@ -1,0 +1,33 @@
+name: Detect Release Type
+description: >
+  Detects whether a semver version is a stable release or pre-release
+  (alpha/beta/rc). Outputs: prerelease=true/false, release-type=stable/pre-release.
+
+inputs:
+  version:
+    description: "Semver version string, e.g. 1.2.3 or 1.2.3-rc.1"
+    required: true
+
+outputs:
+  prerelease:
+    description: "'true' if this is a pre-release, otherwise 'false'"
+    value: ${{ steps.detect.outputs.prerelease }}
+  release-type:
+    description: "'pre-release' or 'stable'"
+    value: ${{ steps.detect.outputs.release-type }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detecteer release type
+      id: detect
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        if echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.'; then
+          echo "prerelease=true"   >> $GITHUB_OUTPUT
+          echo "release-type=pre-release" >> $GITHUB_OUTPUT
+        else
+          echo "prerelease=false"  >> $GITHUB_OUTPUT
+          echo "release-type=stable" >> $GITHUB_OUTPUT
+        fi

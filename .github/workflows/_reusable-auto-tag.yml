@@ -1,0 +1,112 @@
+name: Auto-tag semver patch (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: determine the highest semver tag and push a patch bump
+#
+# Usage:
+#   jobs:
+#     auto-tag:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+#       with:
+#         commit-sha: ${{ github.sha }}
+#       secrets:
+#         gh-pat: ${{ secrets.GH_PAT }}
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      commit-sha:
+        description: "Commit SHA to tag"
+        required: false
+        type: string
+        default: ""
+      tag-prefix:
+        description: "Tag prefix, e.g. 'v'"
+        required: false
+        type: string
+        default: "v"
+      initial-version:
+        description: "Starting version when no tags exist yet"
+        required: false
+        type: string
+        default: "0.1.0"
+
+    secrets:
+      gh-pat:
+        description: "PAT for pushing the tag (required if GITHUB_TOKEN lacks write access)"
+        required: false
+
+    outputs:
+      tag:
+        description: "Created tag, e.g. v0.1.1"
+        value: ${{ jobs.auto-tag.outputs.tag }}
+      version:
+        description: "Version without prefix, e.g. 0.1.1"
+        value: ${{ jobs.auto-tag.outputs.version }}
+
+jobs:
+  auto-tag:
+    name: Auto-tag patch release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.next-version.outputs.next }}
+      version: ${{ steps.next-version.outputs.version }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+
+      - name: Determine next version
+        id: next-version
+        run: |
+          PREFIX="${{ inputs.tag-prefix }}"
+          PATTERN="${PREFIX}[0-9]*.[0-9]*.[0-9]*"
+          LATEST=$(git tag --list "$PATTERN" \
+            | grep -E "^${PREFIX}[0-9]+\.[0-9]+\.[0-9]+$" \
+            | sort -V \
+            | tail -n 1)
+
+          if [ -z "$LATEST" ]; then
+            NEXT="${PREFIX}${{ inputs.initial-version }}"
+            echo "No existing tag found — starting at $NEXT"
+          else
+            echo "Latest stable tag: $LATEST"
+            TRIMMED="${LATEST#$PREFIX}"
+            MAJOR=$(echo "$TRIMMED" | cut -d. -f1)
+            MINOR=$(echo "$TRIMMED" | cut -d. -f2)
+            PATCH=$(echo "$TRIMMED" | cut -d. -f3)
+            NEXT="${PREFIX}${MAJOR}.${MINOR}.$((PATCH + 1))"
+          fi
+
+          VERSION="${NEXT#$PREFIX}"
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "New tag: $NEXT"
+
+      - name: Check if tag already exists
+        id: tag-check
+        run: |
+          TAG="${{ steps.next-version.outputs.next }}"
+          if git tag | grep -q "^${TAG}$"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag $TAG already exists — skipped"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push tag ${{ steps.next-version.outputs.next }}
+        if: steps.tag-check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.next-version.outputs.next }}"
+          SHA="${{ inputs.commit-sha || github.sha }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG" "$SHA"
+          git push origin "$TAG"
+          echo "Tag $TAG gepusht op commit $SHA"

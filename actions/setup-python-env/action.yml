@@ -1,0 +1,50 @@
+name: Setup Python Environment
+description: >
+  Setup Python, cache pip, install dependencies from requirements.txt
+  and optionally run an extra install command (e.g. pip install -e .).
+
+inputs:
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.12"
+  requirements-file:
+    description: "Path to requirements file"
+    required: false
+    default: "requirements.txt"
+  extra-install:
+    description: "Additional pip install command (full command, e.g. 'pip install -e .')"
+    required: false
+    default: ""
+  working-directory:
+    description: "Working directory"
+    required: false
+    default: "."
+
+outputs:
+  python-version:
+    description: "Installed Python version"
+    value: ${{ steps.setup.outputs.python-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Python ${{ inputs.python-version }}
+      id: setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: ${{ inputs.requirements-file }}
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f "${{ inputs.requirements-file }}" ]; then
+          pip install -r ${{ inputs.requirements-file }}
+        fi
+        if [ -n "${{ inputs.extra-install }}" ]; then
+          ${{ inputs.extra-install }}
+        fi

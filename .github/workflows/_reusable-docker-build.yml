@@ -1,0 +1,126 @@
+name: Docker Build + Push (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: build and push Docker image to a container registry
+#
+# Usage:
+#   jobs:
+#     docker:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-docker-build.yml@main
+#       with:
+#         image-name: "ghcr.io/itlusions/myapp"
+#         tag: "1.2.3"
+#       secrets:
+#         registry-username: ${{ secrets.GHCR_USERNAME }}
+#         registry-password: ${{ secrets.GHCR_TOKEN }}
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "Full image name, e.g. ghcr.io/itlusions/myapp"
+        required: true
+        type: string
+      tag:
+        description: "Image tag, e.g. 1.2.3 or latest"
+        required: true
+        type: string
+      dockerfile:
+        description: "Path to the Dockerfile"
+        required: false
+        type: string
+        default: "Dockerfile"
+      context:
+        description: "Docker build context"
+        required: false
+        type: string
+        default: "."
+      registry:
+        description: "Container registry URL"
+        required: false
+        type: string
+        default: "ghcr.io"
+      platforms:
+        description: "Target platforms, e.g. linux/amd64,linux/arm64"
+        required: false
+        type: string
+        default: "linux/amd64"
+      push:
+        description: "Push image to registry"
+        required: false
+        type: boolean
+        default: true
+      build-args:
+        description: "Docker build-args (newline-separated KEY=VALUE)"
+        required: false
+        type: string
+        default: ""
+      ref:
+        description: "Git ref to check out"
+        required: false
+        type: string
+        default: ""
+
+    secrets:
+      registry-username:
+        description: "Registry username"
+        required: false
+      registry-password:
+        description: "Registry password or token"
+        required: false
+
+    outputs:
+      image-digest:
+        description: "SHA digest of the pushed image"
+        value: ${{ jobs.docker.outputs.image-digest }}
+      image-tag:
+        description: "Full image:tag string"
+        value: ${{ jobs.docker.outputs.image-tag }}
+
+jobs:
+  docker:
+    name: Docker build + push
+    runs-on: ubuntu-latest
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ inputs.image-name }}:${{ inputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login naar ${{ inputs.registry }}
+        if: inputs.push
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.image-name }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+            type=raw,value=latest,enable=${{ !contains(inputs.tag, '-') }}
+
+      - name: Build en push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ inputs.build-args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
