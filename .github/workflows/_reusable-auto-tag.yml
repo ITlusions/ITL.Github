@@ -30,6 +30,11 @@ on:
         required: false
         type: string
         default: "0.1.0"
+      release-workflow:
+        description: "Workflow filename to dispatch after tagging (e.g. on-tag.yml). Leave empty to skip."
+        required: false
+        type: string
+        default: ""
 
     secrets:
       gh-pat:
@@ -109,4 +114,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "$TAG" "$SHA"
           git push origin "$TAG"
-          echo "Tag $TAG gepusht op commit $SHA"
+          echo "Tag $TAG pushed on commit $SHA"
+
+      - name: Dispatch release workflow for ${{ steps.next-version.outputs.next }}
+        if: steps.tag-check.outputs.exists == 'false' && inputs.release-workflow != ''
+        env:
+          GH_TOKEN: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.next-version.outputs.next }}"
+          REPO="${{ github.repository }}"
+          WORKFLOW="${{ inputs.release-workflow }}"
+          echo "Dispatching $WORKFLOW with tag=$TAG on $REPO"
+          gh workflow run "$WORKFLOW" \
+            --repo "$REPO" \
+            --field tag="$TAG"
