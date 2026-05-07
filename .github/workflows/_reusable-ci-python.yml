@@ -71,7 +71,7 @@ on:
         type: string
         default: "app_test"
       postgres-port:
-        description: "PostgreSQL port"
+        description: "PostgreSQL port (informational only — service always binds 5432)"
         required: false
         type: string
         default: "5432"
@@ -106,7 +106,7 @@ jobs:
           POSTGRES_PASSWORD: ${{ inputs.postgres-password }}
           POSTGRES_DB: ${{ inputs.postgres-db }}
         ports:
-          - ${{ inputs.postgres-port }}:5432
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U ${{ inputs.postgres-user }} -d ${{ inputs.postgres-db }}"
           --health-interval 10s
