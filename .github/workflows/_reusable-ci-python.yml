@@ -3,6 +3,9 @@ name: CI — Python (reusable)
 # ---------------------------------------------------------------------------
 # Reusable workflow: lint (ruff) → test (pytest) → wheel build
 #
+# A PostgreSQL service is always started. Projects that do not need it
+# can simply ignore the DATABASE_URL environment variable in their tests.
+#
 # Usage:
 #   jobs:
 #     ci:
@@ -10,7 +13,9 @@ name: CI — Python (reusable)
 #       with:
 #         python-version: "3.12"
 #         artifact-name: "myproject-wheel"
-#         postgres-enabled: true
+#         postgres-user: "myapp"
+#         postgres-password: "myapp_test"
+#         postgres-db: "myapp_test"
 # ---------------------------------------------------------------------------
 on:
   workflow_call:
@@ -50,11 +55,6 @@ on:
         required: false
         type: string
         default: "integration"
-      postgres-enabled:
-        description: "Start a PostgreSQL service container"
-        required: false
-        type: boolean
-        default: false
       postgres-user:
         description: "PostgreSQL username"
         required: false
@@ -100,7 +100,7 @@ jobs:
 
     services:
       postgres:
-        image: ${{ inputs.postgres-enabled && 'postgres:16-alpine' || '' }}
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: ${{ inputs.postgres-user }}
           POSTGRES_PASSWORD: ${{ inputs.postgres-password }}
@@ -144,6 +144,9 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ inputs.working-directory }}
+        env:
+          DATABASE_URL: postgresql://${{ inputs.postgres-user }}:${{ inputs.postgres-password }}@localhost:${{ inputs.postgres-port }}/${{ inputs.postgres-db }}
+          ENVIRONMENT: test
         run: |
           pytest ${{ inputs.test-path }} \
             --tb=short \

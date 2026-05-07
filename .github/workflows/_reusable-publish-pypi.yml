@@ -57,6 +57,9 @@ on:
       published:
         description: "true if wheel was published"
         value: ${{ jobs.publish.outputs.published }}
+      ci-run-id:
+        description: "Run ID of the CI workflow the artifact was downloaded from"
+        value: ${{ jobs.publish.outputs.ci-run-id }}
 
 jobs:
   publish:
@@ -65,6 +68,7 @@ jobs:
     environment: ${{ inputs.environment }}
     outputs:
       published: ${{ steps.publish.outputs.published }}
+      ci-run-id: ${{ steps.find-run.outputs.run-id }}
 
     permissions:
       contents: read
