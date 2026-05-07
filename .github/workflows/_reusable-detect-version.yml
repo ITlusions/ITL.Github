@@ -1,0 +1,117 @@
+name: Detect version (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: determine a semver-based version for any branch.
+#
+# Version scheme:
+#   main branch   → next patch bump   : 0.1.3          (is-release=true)
+#   other branches → current + dev    : 0.1.2-feature-login.42-abc1234 (is-release=false)
+#
+# Outputs:
+#   version   — full version string  : 0.1.3  /  0.1.2-feature-login.42+abc1234
+#   image-tag — Docker-safe version  : 0.1.3  /  0.1.2-feature-login.42-abc1234  (no +)
+#   tag       — prefixed tag string  : v0.1.3 /  "" (only set on main)
+#   is-release — "true" on main only
+#
+# Usage:
+#   jobs:
+#     detect-version:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      tag-prefix:
+        description: "Tag prefix, e.g. 'v'"
+        required: false
+        type: string
+        default: "v"
+      initial-version:
+        description: "Starting version when no tags exist yet"
+        required: false
+        type: string
+        default: "0.1.0"
+
+    outputs:
+      version:
+        description: "Full version string, e.g. 0.1.3 or 0.1.2-feature-login.42+abc1234"
+        value: ${{ jobs.detect.outputs.version }}
+      image-tag:
+        description: "Docker-safe version (no +), e.g. 0.1.3 or 0.1.2-feature-login.42-abc1234"
+        value: ${{ jobs.detect.outputs.image-tag }}
+      tag:
+        description: "Prefixed tag for main, e.g. v0.1.3 (empty on non-main)"
+        value: ${{ jobs.detect.outputs.tag }}
+      is-release:
+        description: "'true' when this is a main branch build"
+        value: ${{ jobs.detect.outputs.is-release }}
+
+jobs:
+  detect:
+    name: Detect version
+    runs-on: ubuntu-latest
+    outputs:
+      version:   ${{ steps.version.outputs.version }}
+      image-tag: ${{ steps.version.outputs.image-tag }}
+      tag:       ${{ steps.version.outputs.tag }}
+      is-release: ${{ steps.version.outputs.is-release }}
+
+    steps:
+      - name: Checkout (full history for tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          PREFIX="${{ inputs.tag-prefix }}"
+          PATTERN="${PREFIX}[0-9]*.[0-9]*.[0-9]*"
+          LATEST=$(git tag --list "$PATTERN" \
+            | grep -E "^${PREFIX}[0-9]+\.[0-9]+\.[0-9]+$" \
+            | sort -V \
+            | tail -n 1)
+
+          if [ -z "$LATEST" ]; then
+            CURRENT="${{ inputs.initial-version }}"
+          else
+            CURRENT="${LATEST#$PREFIX}"
+          fi
+
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
+          NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+          SHA_SHORT="${GITHUB_SHA:0:7}"
+          RUN="${GITHUB_RUN_NUMBER}"
+
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            VERSION="$NEXT"
+            IMAGE_TAG="$NEXT"
+            TAG="${PREFIX}${NEXT}"
+            IS_RELEASE="true"
+          else
+            # Slugify branch name: replace non-alphanumeric with -, lowercase, trim dashes
+            BRANCH_SLUG=$(echo "$GITHUB_REF_NAME" \
+              | sed 's|/|-|g' \
+              | sed 's/[^a-zA-Z0-9-]/-/g' \
+              | tr '[:upper:]' '[:lower:]' \
+              | sed 's/-\+/-/g' \
+              | sed 's/^-//;s/-$//')
+            VERSION="${CURRENT}-${BRANCH_SLUG}.${RUN}+${SHA_SHORT}"
+            IMAGE_TAG="${CURRENT}-${BRANCH_SLUG}.${RUN}-${SHA_SHORT}"
+            TAG=""
+            IS_RELEASE="false"
+          fi
+
+          echo "version=$VERSION"     >> $GITHUB_OUTPUT
+          echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG"             >> $GITHUB_OUTPUT
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+
+          echo "Branch : $GITHUB_REF_NAME"
+          echo "Version: $VERSION"
+          echo "ImgTag : $IMAGE_TAG"
+          echo "Tag    : $TAG"
+          echo "Release: $IS_RELEASE"
