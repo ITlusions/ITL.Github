@@ -1,0 +1,79 @@
+name: Docker retag (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: retag an existing Docker image to a new tag.
+# Use this to promote a CI-built image to a release tag without rebuilding.
+#
+# Usage:
+#   jobs:
+#     docker:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-docker-retag.yml@main
+#       with:
+#         source-image: "ghcr.io/itlusions/braincell-api:0.1.4-ci"
+#         target-image: "ghcr.io/itlusions/braincell-api"
+#         target-tag:   "v0.1.4"
+#       secrets:
+#         registry-password: ${{ secrets.GH_PAT }}
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      source-image:
+        description: "Full source image reference including tag (image:source-tag)"
+        required: true
+        type: string
+      target-image:
+        description: "Target image name without tag (e.g. ghcr.io/itlusions/braincell-api)"
+        required: true
+        type: string
+      target-tag:
+        description: "New tag to apply (e.g. v0.1.4 or latest)"
+        required: true
+        type: string
+      registry:
+        description: "Container registry URL"
+        required: false
+        type: string
+        default: "ghcr.io"
+      registry-username:
+        description: "Registry username (defaults to github.actor)"
+        required: false
+        type: string
+        default: ""
+
+    secrets:
+      registry-password:
+        description: "Registry password or token"
+        required: true
+
+    outputs:
+      image-ref:
+        description: "Full image reference after retag (image:target-tag)"
+        value: ${{ jobs.retag.outputs.image-ref }}
+
+jobs:
+  retag:
+    name: Retag ${{ inputs.source-image }} → ${{ inputs.target-tag }}
+    runs-on: ubuntu-latest
+    outputs:
+      image-ref: ${{ steps.retag.outputs.image-ref }}
+
+    steps:
+      - name: Log in to ${{ inputs.registry }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Retag image
+        id: retag
+        run: |
+          SOURCE="${{ inputs.source-image }}"
+          TARGET="${{ inputs.target-image }}:${{ inputs.target-tag }}"
+          echo "Retagging: $SOURCE → $TARGET"
+          docker buildx imagetools create --tag "$TARGET" "$SOURCE"
+          echo "image-ref=$TARGET" >> $GITHUB_OUTPUT
