@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onboard — Live Run · ITL.Github</title>
+  <meta name="description" content="Onboard a GitHub Project directly from the browser using the GitHub API. Log in with GitHub — no PAT required." />
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+      --accent: #1f6feb; --accent-glow: rgba(31,111,235,.15); --accent2: #58a6ff;
+      --text: #e6edf3; --muted: #8b949e; --success: #3fb950; --warning: #d29922;
+      --error: #f85149; --purple: #6e40c9; --tag-bg: #1f3347; --tag-text: #58a6ff;
+      --radius: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; line-height: 1.6; min-height: 100vh; }
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: .85em; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--accent2); }
+    .hidden { display: none !important; }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 100; background: rgba(13,17,23,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: .9rem; color: var(--text); text-decoration: none; }
+    .nav-brand:hover { color: var(--accent2); text-decoration: none; }
+    .nav-links { display: flex; gap: 4px; list-style: none; }
+    .nav-links a { color: var(--muted); font-size: .875rem; padding: 4px 10px; border-radius: 6px; transition: color .15s, background .15s; }
+    .nav-links a:hover { color: var(--text); background: var(--surface2); text-decoration: none; }
+    .nav-links a.active { color: var(--accent2); background: var(--accent-glow); }
+    .nav-toggle { display: none; flex-direction: column; justify-content: space-between; width: 22px; height: 16px; background: none; border: none; cursor: pointer; padding: 0; }
+    .nav-toggle span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: transform .2s, opacity .2s; }
+    .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Page header */
+    .page-header { border-bottom: 1px solid var(--border); padding: 3rem 2rem 2rem; background: radial-gradient(ellipse at 50% 0%, rgba(31,111,235,.1) 0%, transparent 65%); }
+    .page-header-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .page-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--tag-bg); color: var(--tag-text); border: 1px solid rgba(88,166,255,.3); border-radius: 2rem; padding: 3px 12px; font-size: .78rem; font-weight: 500; margin-bottom: .75rem; }
+    .page-header h1 { font-size: clamp(1.4rem,3vw,2rem); font-weight: 700; letter-spacing: -.02em; margin-bottom: .35rem; }
+    .page-header p { color: var(--muted); max-width: 480px; font-size: .925rem; }
+    .mode-switch { display: flex; gap: .5rem; align-items: center; }
+    .mode-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; font-size: .82rem; font-weight: 500; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; transition: all .15s; text-decoration: none; }
+    .mode-btn:hover { color: var(--text); border-color: var(--accent); background: var(--accent-glow); text-decoration: none; }
+    .mode-btn.active { color: var(--accent2); border-color: var(--accent); background: var(--accent-glow); }
+
+    /* Main grid */
+    .main { max-width: 1240px; margin: 0 auto; padding: 2rem 2rem 4rem; display: grid; grid-template-columns: 1fr 420px; gap: 1.75rem; align-items: start; }
+
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 1rem; }
+    .card:last-child { margin-bottom: 0; }
+    .card-header { padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); display: flex; align-items: center; gap: 8px; }
+    .card-body { padding: 1.25rem; }
+    .card-body + .card-body { border-top: 1px solid var(--border); }
+
+    /* Auth */
+    .token-row { display: flex; gap: .5rem; align-items: center; margin-bottom: .75rem; }
+    .token-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: .875rem; padding: 8px 10px; outline: none; font-family: ui-monospace, Consolas, monospace; transition: border-color .15s; }
+    .token-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 6px; font-size: .85rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: opacity .15s, transform .1s; font-family: inherit; }
+    .btn:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-primary  { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border-color: var(--border); }
+    .btn-ghost { background: none; border-color: transparent; color: var(--muted); padding: 4px 8px; font-size: .78rem; }
+    .btn-ghost:hover { color: var(--text); background: var(--surface2); }
+    .btn-danger { background: rgba(248,81,73,.15); border-color: rgba(248,81,73,.4); color: var(--error); }
+    .auth-user { display: flex; align-items: center; gap: 12px; }
+    .auth-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; flex-shrink: 0; overflow: hidden; }
+    .auth-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .auth-name { font-weight: 600; font-size: .9rem; }
+    .auth-scopes { font-size: .75rem; color: var(--muted); margin-top: 1px; }
+    .scope-tag { display: inline-block; background: rgba(63,185,80,.15); border: 1px solid rgba(63,185,80,.3); color: var(--success); border-radius: 3px; padding: 0 6px; font-size: .72rem; margin-right: 3px; }
+    .scope-tag.warn { background: rgba(210,153,34,.12); border-color: rgba(210,153,34,.3); color: var(--warning); }
+    .security-note { font-size: .75rem; color: var(--muted); margin-top: .75rem; display: flex; align-items: flex-start; gap: 6px; }
+    .scope-help { margin-top: .75rem; }
+    .scope-help a { font-size: .8rem; }
+
+    /* Form fields */
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; margin-bottom: .85rem; }
+    .field-row.single { grid-template-columns: 1fr; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: .82rem; font-weight: 500; }
+    .field .hint { font-size: .73rem; color: var(--muted); }
+    .req { color: var(--error); margin-left: 2px; }
+    input[type="text"], input[type="number"], input[type="date"], select {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: .875rem; padding: 8px 10px; outline: none; width: 100%; transition: border-color .15s; font-family: inherit;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
+
+    /* Radio / check */
+    .radio-group, .check-group { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .radio-option, .check-option { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; cursor: pointer; font-size: .84rem; transition: border-color .15s, background .15s; user-select: none; }
+    .radio-option:has(input:checked), .check-option:has(input:checked) { border-color: var(--accent); background: var(--accent-glow); color: var(--accent2); }
+    .radio-option input, .check-option input { accent-color: var(--accent); }
+
+    /* Chips */
+    .chips-container { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; min-height: 40px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; cursor: text; transition: border-color .15s; }
+    .chips-container:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--tag-bg); border: 1px solid rgba(88,166,255,.3); color: var(--tag-text); border-radius: 4px; padding: 2px 7px; font-size: .75rem; font-weight: 500; white-space: nowrap; }
+    .chip-remove { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; line-height: 1; font-size: .9rem; display: flex; align-items: center; }
+    .chip-remove:hover { color: var(--error); }
+    .chip-input { background: none; border: none; outline: none; color: var(--text); font-size: .84rem; font-family: inherit; min-width: 100px; flex: 1; padding: 2px 3px; }
+
+    /* Run controls */
+    .run-controls { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .run-controls .btn-primary { flex: 1; justify-content: center; min-width: 160px; padding: 10px 20px; font-size: .9rem; }
+
+    /* Log panel (right column, sticky) */
+    .log-col { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 1rem; }
+    .log-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .log-body { padding: .75rem; max-height: 560px; overflow-y: auto; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .78rem; line-height: 1.6; }
+    .log-placeholder { padding: 3rem 1rem; text-align: center; color: var(--muted); font-family: inherit; }
+    .log-entry { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }
+    .log-icon { flex-shrink: 0; width: 16px; margin-top: 1px; display: flex; align-items: center; justify-content: center; }
+    .log-text { flex: 1; }
+    .log-title { color: var(--text); }
+    .log-sep { color: var(--muted); }
+    .log-detail { }
+    .log-detail.ok   { color: var(--success); }
+    .log-detail.err  { color: var(--error); }
+    .log-detail.warn { color: var(--warning); }
+    .log-detail.dry  { color: var(--accent2); }
+    .log-detail.skip { color: var(--muted); }
+    .log-entry.is-pending .log-icon { color: var(--muted); }
+    .log-entry.is-ok      .log-icon { color: var(--success); }
+    .log-entry.is-err     .log-icon { color: var(--error); }
+    .log-entry.is-warn    .log-icon { color: var(--warning); }
+    .log-entry.is-dry     .log-icon { color: var(--accent2); }
+    .log-entry.is-skip    .log-icon { color: var(--muted); }
+    .log-divider { border: none; border-top: 1px solid var(--border); margin: .5rem 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent2); border-radius: 50%; animation: spin .7s linear infinite; }
+
+    /* Result / error banners */
+    .banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-radius: var(--radius); padding: .9rem 1.1rem; font-size: .85rem; flex-wrap: wrap; }
+    .banner.ok  { background: rgba(63,185,80,.1);  border: 1px solid rgba(63,185,80,.3);  color: var(--success); }
+    .banner.dry { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.3); color: var(--accent2); }
+    .banner.err { background: rgba(248,81,73,.1);  border: 1px solid rgba(248,81,73,.3);  color: var(--error); }
+
+    /* Security note box */
+    .sec-box { display: flex; align-items: flex-start; gap: 8px; background: rgba(110,64,201,.08); border: 1px solid rgba(110,64,201,.25); border-radius: 6px; padding: .75rem 1rem; font-size: .78rem; color: var(--muted); }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; font-size: .82rem; color: var(--muted); }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    /* Responsive */
+    @media (max-width: 1024px) { .main { grid-template-columns: 1fr; } .log-col { position: static; } }
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-toggle { display: flex; }
+      .nav-links { display: none; position: absolute; top: 56px; left: 0; right: 0; flex-direction: column; gap: 0; background: rgba(13,17,23,.97); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: .5rem 0; z-index: 99; }
+      .nav-links.open { display: flex; }
+      .nav-links li { width: 100%; }
+      .nav-links a { display: block; padding: .75rem 1.5rem; border-radius: 0; font-size: .95rem; color: var(--text); }
+      .page-header { padding: 2rem 1.25rem; }
+      .page-header-inner { flex-direction: column; }
+      .main { padding: 1.5rem 1.25rem 3rem; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+    ITL.Github
+  </a>
+  <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" id="nav-toggle">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="index#workflows">Workflows</a></li>
+    <li><a href="index#actions">Actions</a></li>
+    <li><a href="index#docs">Docs</a></li>
+    <li><a href="getting-started">Get Started</a></li>
+    <li><a href="onboard">Onboard</a></li>
+    <li><a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- Page header -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div>
+      <div class="page-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Live — runs directly against the GitHub API from your browser
+      </div>
+      <h1>Onboard — Live Run</h1>
+      <p>Log in with GitHub, fill in the form, and hit Run. The GitHub Projects v2 API and REST API are called directly from this page — no server, no scripts.</p>
+    </div>
+    <div class="mode-switch">
+      <a class="mode-btn" href="onboard">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Command Builder
+      </a>
+      <a class="mode-btn active" href="onboard-live">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Live Run
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── LEFT COLUMN ── -->
+  <div>
+
+    <!-- Auth card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Authentication
+        </span>
+        <button class="btn btn-ghost hidden" id="logoutBtn">Log out</button>
+      </div>
+
+      <!-- Step 1: Client ID -->
+      <div class="card-body" id="authClientId">
+        <input type="hidden" id="clientIdInput" value="Ov23lih9kQ6GG2os0aS9" />
+        <div style="text-align:center;padding:.5rem 0">
+          <button class="btn btn-primary" id="startLoginBtn" type="button" style="font-size:.95rem;padding:10px 24px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            Login with GitHub
+          </button>
+        </div>
+        <div id="authError" class="hidden" style="color:var(--error);font-size:.8rem;margin-top:.5rem;text-align:center"></div>
+        <div class="sec-box" style="margin-top:.85rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Uses the <strong>GitHub Device Authorization Grant</strong>. Authorization happens on github.com — no credentials touch this page. The access token is kept in memory only.</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Device code pending -->
+      <div class="card-body hidden" id="authDevice">
+        <div style="text-align:center;padding:.5rem 0 .25rem">
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem">Enter this code on GitHub — click to copy:</div>
+          <div id="deviceUserCode" style="font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:2rem;font-weight:700;letter-spacing:.3em;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.5rem 1.5rem;display:inline-block;margin-bottom:1rem;cursor:pointer;user-select:all" title="Click to copy"></div>
+          <br/>
+          <a id="deviceVerifyLink" href="https://github.com/login/device" target="_blank" rel="noopener" class="btn btn-primary" style="margin-bottom:.75rem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            Open github.com/login/device
+          </a>
+        </div>
+        <div id="deviceStatus" style="text-align:center;font-size:.8rem;color:var(--muted);padding:.25rem 0 .5rem">
+          <span class="spinner"></span> Waiting for authorization…
+        </div>
+        <div style="text-align:center;margin-top:.5rem">
+          <button class="btn btn-ghost" id="cancelDeviceBtn" type="button">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Authenticated -->
+      <div class="card-body hidden" id="authConfirmed">
+        <div class="auth-user">
+          <div class="auth-avatar" id="authAvatar"></div>
+          <div style="flex:1">
+            <div class="auth-name" id="authName"></div>
+            <div class="auth-scopes" id="authScopes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project form -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Project
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label for="projectTitle">Project Title <span class="req">*</span></label>
+            <input type="text" id="projectTitle" placeholder="e.g. My Service" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="org">Organisation</label>
+            <input type="text" id="org" value="ITlusions" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label for="repoName">Repository <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="repoName" placeholder="ITlusions/ITL.MyService" autocomplete="off" />
+            <span class="hint">Required for milestones, labels, and linking the repo to the project.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preset -->
+      <div class="card-body">
+        <div class="field">
+          <label style="margin-bottom:.5rem">Preset</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="preset" value="basic" />
+              <div>
+                <div style="font-weight:500">Basic</div>
+                <div style="font-size:.73rem;color:var(--muted)">Sprint · Priority · Story Points · Category</div>
+              </div>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="preset" value="full" checked />
+              <div>
+                <div style="font-weight:500">Full <span style="font-size:.68rem;background:var(--tag-bg);color:var(--tag-text);border-radius:3px;padding:1px 6px;margin-left:4px;border:1px solid rgba(88,166,255,.3)">recommended</span></div>
+                <div style="font-size:.73rem;color:var(--muted)">Basic + Work Type · Effort · Epic · Blocked · Risk</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="card-body">
+        <div class="field">
+          <label style="margin-bottom:.4rem">Category Options <span style="color:var(--muted);font-weight:400">(Enter or comma to add)</span></label>
+          <div class="chips-container" id="chipsContainer">
+            <input type="text" class="chip-input" id="chipInput" placeholder="Add category..." autocomplete="off" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Sprints -->
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label for="sprintCount">Number of Sprints</label>
+            <input type="number" id="sprintCount" value="0" min="0" max="52" />
+            <span class="hint">0 = skip milestone creation.</span>
+          </div>
+          <div class="field">
+            <label for="sprintLength">Sprint Length (days)</label>
+            <input type="number" id="sprintLength" value="14" min="1" max="90" />
+          </div>
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label for="sprintStart">Sprint 1 Start</label>
+            <input type="date" id="sprintStart" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="card-body">
+        <div class="field">
+          <label style="margin-bottom:.5rem">Options</label>
+          <div class="check-group">
+            <label class="check-option">
+              <input type="checkbox" id="createLabels" />
+              <div>
+                <div style="font-weight:500">Create Labels</div>
+                <div style="font-size:.72rem;color:var(--muted)">type:epic/story/task/bug/spike</div>
+              </div>
+            </label>
+            <label class="check-option">
+              <input type="checkbox" id="skipIfExists" />
+              <div>
+                <div style="font-weight:500">Skip If Exists</div>
+                <div style="font-size:.72rem;color:var(--muted)">Reuse existing project</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Run controls -->
+    <div class="card">
+      <div class="card-body">
+        <div class="run-controls">
+          <label class="check-option">
+            <input type="checkbox" id="dryRun" checked />
+            <div>
+              <div style="font-weight:500">Dry run</div>
+              <div style="font-size:.72rem;color:var(--muted)">Preview only — no changes made</div>
+            </div>
+          </label>
+          <button class="btn btn-primary" id="runBtn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run Onboarding
+          </button>
+        </div>
+        <div id="runError" class="hidden" style="color:var(--error);font-size:.8rem;margin-top:.6rem"></div>
+      </div>
+    </div>
+
+  </div><!-- /left col -->
+
+  <!-- ── RIGHT COLUMN: Log ── -->
+  <div class="log-col">
+    <div class="log-card">
+      <div class="card-header" style="padding:.6rem 1rem">
+        <span class="card-title" style="font-size:.75rem">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          Execution Log
+        </span>
+        <button class="btn btn-ghost" id="clearLogBtn" type="button">Clear</button>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="log-placeholder" id="logPlaceholder">Authenticate and click Run to begin.</div>
+      </div>
+    </div>
+
+    <div class="banner ok hidden" id="bannerOk">
+      <span id="bannerMsg">Project created.</span>
+      <a class="btn btn-secondary" id="projectLink" href="#" target="_blank" rel="noopener">Open Project →</a>
+    </div>
+    <div class="banner dry hidden" id="bannerDry">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>Dry run complete — no changes made.</span>
+    </div>
+    <div class="banner err hidden" id="bannerErr">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="bannerErrMsg">An error occurred.</span>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<footer>
+  <p>
+    &copy; <span id="yr"></span>
+    <a href="https://github.com/ITlusions" target="_blank" rel="noopener">ITlusions</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">ITL.Github on GitHub</a>
+    &nbsp;·&nbsp;
+    MIT License
+  </p>
+</footer>
+
+<script>
+"use strict";
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const GH_REST = "https://api.github.com";
+const GH_GQL  = "https://api.github.com/graphql";
+const DEFAULT_CATEGORIES = ["Workflows","Actions","Documentation","Testing","Security","Tooling"];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let _token      = null;  // never persisted — memory only
+let categories  = [...DEFAULT_CATEGORIES];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function $id(id) { return document.getElementById(id); }
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function gql(query, variables = {}) {
+  const res = await fetch(GH_GQL, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${_token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join("; "));
+  return json.data;
+}
+
+async function rest(method, path, body = null) {
+  const res = await fetch(`${GH_REST}${path}`, {
+    method,
+    headers: {
+      "Authorization": `Bearer ${_token}`,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : null,
+  });
+  if (res.status === 204) return null;
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+  return { data, headers: res.headers };
+}
+
+// ── Logger ───────────────────────────────────────────────────────────────────
+function createLogger() {
+  const body        = $id("logBody");
+  const placeholder = $id("logPlaceholder");
+  placeholder.classList.add("hidden");
+
+  const ICONS = {
+    pending: `<span class="spinner"></span>`,
+    ok:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,
+    err:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    warn: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    dry:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+    skip: `<span style="font-size:.9rem;line-height:1">—</span>`,
+  };
+
+  function addDivider() {
+    const hr = document.createElement("hr");
+    hr.className = "log-divider";
+    body.appendChild(hr);
+  }
+
+  function step(title) {
+    const row = document.createElement("div");
+    row.className = "log-entry is-pending";
+    row.innerHTML = `<span class="log-icon">${ICONS.pending}</span><span class="log-text"><span class="log-title">${esc(title)}</span><span class="log-sep"></span><span class="log-detail"></span></span>`;
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+
+    const setStatus = (kind, detail = "") => {
+      row.className = `log-entry is-${kind}`;
+      row.querySelector(".log-icon").innerHTML = ICONS[kind] || ICONS.ok;
+      const sep = row.querySelector(".log-sep");
+      const det = row.querySelector(".log-detail");
+      if (detail) {
+        sep.textContent = " — ";
+        det.className   = `log-detail ${kind}`;
+        det.textContent = detail;
+      }
+      body.scrollTop = body.scrollHeight;
+    };
+    return {
+      ok:   (d) => setStatus("ok",   d),
+      err:  (d) => setStatus("err",  d),
+      warn: (d) => setStatus("warn", d),
+      dry:  (d) => setStatus("dry",  d),
+      skip: (d) => setStatus("skip", d),
+    };
+  }
+
+  function info(msg) {
+    const row = document.createElement("div");
+    row.style.cssText = "padding:2px 0 2px 24px;font-size:.74rem;color:var(--muted)";
+    row.textContent = msg;
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  return { step, info, addDivider };
+}
+
+// ── Field definitions ────────────────────────────────────────────────────────
+function getFieldDefs(preset, cats) {
+  const basic = [
+    // Sprint handled separately (ITERATION)
+    {
+      name: "Priority", type: "SINGLE_SELECT",
+      options: [
+        { name: "Critical", color: "RED",    description: "" },
+        { name: "High",     color: "ORANGE", description: "" },
+        { name: "Medium",   color: "YELLOW", description: "" },
+        { name: "Low",      color: "GRAY",   description: "" },
+      ],
+    },
+    { name: "Story Points", type: "NUMBER" },
+    {
+      name: "Category", type: "SINGLE_SELECT",
+      options: cats.map((c, i) => ({ name: c, color: ["BLUE","GREEN","YELLOW","ORANGE","PURPLE","PINK","RED","GRAY"][i % 8], description: "" })),
+    },
+  ];
+  const full = [
+    {
+      name: "Work Type", type: "SINGLE_SELECT",
+      options: [
+        { name: "Epic",  color: "PURPLE", description: "Large body of work spanning multiple sprints" },
+        { name: "Story", color: "BLUE",   description: "User story — a piece of deliverable value" },
+        { name: "Task",  color: "GREEN",  description: "Technical task or chore" },
+        { name: "Bug",   color: "RED",    description: "Something isn't working" },
+        { name: "Spike", color: "PINK",   description: "Research or investigation task" },
+      ],
+    },
+    {
+      name: "Effort", type: "SINGLE_SELECT",
+      options: [
+        { name: "XS", color: "GRAY",   description: "" }, { name: "S", color: "BLUE",   description: "" },
+        { name: "M",  color: "GREEN",  description: "" }, { name: "L", color: "YELLOW", description: "" },
+        { name: "XL", color: "ORANGE", description: "" },
+      ],
+    },
+    { name: "Epic",    type: "TEXT" },
+    { name: "Blocked", type: "SINGLE_SELECT", options: [{ name: "No", color: "GREEN", description: "" }, { name: "Yes", color: "RED", description: "" }] },
+    { name: "Risk",    type: "SINGLE_SELECT", options: [
+      { name: "None",   color: "GRAY",   description: "" }, { name: "Low",  color: "BLUE",   description: "" },
+      { name: "Medium", color: "YELLOW", description: "" }, { name: "High", color: "RED",    description: "" },
+    ]},
+  ];
+  return preset === "full" ? [...basic, ...full] : basic;
+}
+
+// ── GitHub GraphQL / REST wrappers ───────────────────────────────────────────
+const Q = {
+  getUser: `query { viewer { login name avatarUrl } }`,
+
+  getOrg: `query($login: String!) { organization(login: $login) { id } }`,
+
+  listProjects: `query($login: String!) {
+    organization(login: $login) {
+      projectsV2(first: 100) { nodes { id number title } }
+    }
+  }`,
+
+  createProject: `mutation($ownerId: ID!, $title: String!) {
+    createProjectV2(input: { ownerId: $ownerId, title: $title }) {
+      projectV2 { id number url }
+    }
+  }`,
+
+  listFields: `query($login: String!, $number: Int!) {
+    organization(login: $login) {
+      projectV2(number: $number) {
+        fields(first: 50) {
+          nodes {
+            __typename
+            ... on ProjectV2Field               { id name }
+            ... on ProjectV2SingleSelectField   { id name }
+            ... on ProjectV2IterationField      { id name }
+            ... on ProjectV2NumberField         { id name }
+          }
+        }
+      }
+    }
+  }`,
+
+  createIteration: `mutation($projectId: ID!, $name: String!) {
+    createProjectV2Field(input: { projectId: $projectId, dataType: ITERATION, name: $name }) {
+      projectV2Field { ... on ProjectV2IterationField { id name } }
+    }
+  }`,
+
+  createSingleSelect: `mutation($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+    createProjectV2Field(input: { projectId: $projectId, dataType: SINGLE_SELECT, name: $name, singleSelectOptions: $options }) {
+      projectV2Field { ... on ProjectV2SingleSelectField { id name } }
+    }
+  }`,
+
+  createField: `mutation($projectId: ID!, $name: String!, $dataType: ProjectV2CustomFieldType!) {
+    createProjectV2Field(input: { projectId: $projectId, dataType: $dataType, name: $name }) {
+      projectV2Field { ... on ProjectV2Field { id name } }
+    }
+  }`,
+
+  getRepoId: `query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { id } }`,
+
+  linkRepo: `mutation($projectId: ID!, $repositoryId: ID!) {
+    linkProjectV2ToRepository(input: { projectId: $projectId, repositoryId: $repositoryId }) {
+      repository { nameWithOwner }
+    }
+  }`,
+};
+
+// ── Main onboarding function ─────────────────────────────────────────────────
+async function runOnboarding(cfg) {
+  const { org, title, repoName, preset, cats, sprintCount, sprintLength, sprintStart, createLabels, skipIfExists, dryRun } = cfg;
+  const log = createLogger();
+  let finalUrl = null;
+
+  try {
+
+    // ── 1. Auth check ──────────────────────────────────────────
+    log.addDivider();
+    let s = log.step("Checking authentication");
+    const me = (await gql(Q.getUser)).viewer;
+    s.ok(`@${me.login}`);
+
+    // ── 2. Resolve org ─────────────────────────────────────────
+    s = log.step(`Resolving org '${org}'`);
+    let orgId;
+    try {
+      orgId = (await gql(Q.getOrg, { login: org })).organization.id;
+      s.ok(orgId);
+    } catch (e) { s.err(e.message); return; }
+
+    // ── 3. Find or create project ──────────────────────────────
+    log.addDivider();
+    s = log.step(`Finding project '${title}'`);
+    let projectId, projectNumber, projectUrl;
+    const projs = (await gql(Q.listProjects, { login: org })).organization.projectsV2.nodes;
+    const existing = projs.find(p => p.title === title);
+
+    if (existing) {
+      if (!skipIfExists) {
+        s.err(`Already exists (#${existing.number}). Enable 'Skip If Exists' to reuse.`);
+        return;
+      }
+      projectId = existing.id; projectNumber = existing.number;
+      projectUrl = `https://github.com/orgs/${org}/projects/${projectNumber}`;
+      s.warn(`Reusing existing #${projectNumber}`);
+    } else if (dryRun) {
+      s.dry(`Would create project '${title}'`);
+      projectId = "__DRY__"; projectNumber = 0; projectUrl = "#";
+    } else {
+      const pv2 = (await gql(Q.createProject, { ownerId: orgId, title })).createProjectV2.projectV2;
+      projectId = pv2.id; projectNumber = pv2.number; projectUrl = pv2.url;
+      s.ok(`Created #${projectNumber}`);
+      finalUrl = projectUrl;
+    }
+
+    // ── 4. Read existing fields ────────────────────────────────
+    s = log.step("Reading existing fields");
+    let existingNames = new Set(["Title", "Assignees", "Status", "Labels", "Linked pull requests", "Milestone", "Repository"]);
+    if (projectNumber > 0) {
+      try {
+        const fieldsData = (await gql(Q.listFields, { login: org, number: projectNumber })).organization.projectV2.fields.nodes;
+        fieldsData.forEach(f => f.name && existingNames.add(f.name));
+        s.ok(`${fieldsData.length} existing fields`);
+      } catch (e) { s.warn(`Could not read fields: ${e.message}`); }
+    } else {
+      s.skip("New project (dry run)");
+    }
+
+    // ── 5. Create fields ───────────────────────────────────────
+    log.addDivider();
+
+    async function createField(fieldDef) {
+      const { name, type, options } = fieldDef;
+      const stepF = log.step(`Field: ${name} (${type})`);
+
+      if (existingNames.has(name)) { stepF.skip("already exists"); return; }
+      if (dryRun)                  { stepF.dry("would create"); return; }
+
+      try {
+        if (type === "ITERATION") {
+          await gql(Q.createIteration, { projectId, name });
+        } else if (type === "SINGLE_SELECT") {
+          await gql(Q.createSingleSelect, { projectId, name, options: options || [] });
+        } else {
+          await gql(Q.createField, { projectId, name, dataType: type });
+        }
+        existingNames.add(name);
+        stepF.ok("created");
+      } catch (e) { stepF.err(e.message); }
+    }
+
+    // Sprint first (ITERATION)
+    await createField({ name: "Sprint", type: "ITERATION" });
+
+    const fieldDefs = getFieldDefs(preset, cats);
+    for (const fd of fieldDefs) await createField(fd);
+
+    // ── 6. Link repository ─────────────────────────────────────
+    if (repoName) {
+      log.addDivider();
+      s = log.step(`Linking repository '${repoName}'`);
+      if (dryRun) {
+        s.dry("would link");
+      } else {
+        try {
+          const parts = repoName.split("/");
+          const repoId = (await gql(Q.getRepoId, { owner: parts[0], name: parts[1] })).repository.id;
+          const linked = (await gql(Q.linkRepo, { projectId, repositoryId: repoId })).linkProjectV2ToRepository.repository.nameWithOwner;
+          s.ok(linked);
+        } catch (e) { s.err(e.message); }
+      }
+    }
+
+    // ── 7. Create sprint milestones ────────────────────────────
+    if (sprintCount > 0 && repoName) {
+      log.addDivider();
+      s = log.step(`Loading existing milestones`);
+      let existingMs = new Set();
+      if (!dryRun) {
+        try {
+          const r = await rest("GET", `/repos/${repoName}/milestones?state=all&per_page=100`);
+          r.data.forEach(m => existingMs.add(m.title));
+          s.ok(`${r.data.length} found`);
+        } catch (e) { s.warn(e.message); }
+      } else { s.skip("dry run"); }
+
+      const start = new Date(sprintStart);
+      for (let i = 1; i <= sprintCount; i++) {
+        const msTitle = `Sprint ${i}`;
+        const ms = log.step(`Milestone: ${msTitle}`);
+        if (existingMs.has(msTitle)) { ms.skip("already exists"); continue; }
+        if (dryRun) { ms.dry("would create"); continue; }
+        const dueDate = new Date(start);
+        dueDate.setDate(dueDate.getDate() + sprintLength * i);
+        try {
+          await rest("POST", `/repos/${repoName}/milestones`, {
+            title: msTitle,
+            due_on: dueDate.toISOString(),
+            description: `Sprint ${i} — ${new Date(start.getTime() + sprintLength*(i-1)*86400000).toDateString()} to ${new Date(start.getTime() + sprintLength*i*86400000 - 86400000).toDateString()}`,
+          });
+          ms.ok(`due ${dueDate.toDateString()}`);
+        } catch (e) { ms.err(e.message); }
+      }
+    }
+
+    // ── 8. Create labels ───────────────────────────────────────
+    if (createLabels && repoName) {
+      log.addDivider();
+      s = log.step("Loading existing labels");
+      let existingLabels = new Set();
+      if (!dryRun) {
+        try {
+          const r = await rest("GET", `/repos/${repoName}/labels?per_page=100`);
+          r.data.forEach(l => existingLabels.add(l.name));
+          s.ok(`${r.data.length} found`);
+        } catch (e) { s.warn(e.message); }
+      } else { s.skip("dry run"); }
+
+      const labelDefs = [
+        { name: "type:epic",  color: "6e40c9", description: "Large body of work spanning multiple sprints" },
+        { name: "type:story", color: "0075ca", description: "User story — a piece of deliverable value" },
+        { name: "type:task",  color: "c8e46a", description: "Technical task or chore" },
+        { name: "type:bug",   color: "d73a4a", description: "Something isn't working" },
+        { name: "type:spike", color: "f9d0c4", description: "Research or investigation task" },
+      ];
+      for (const lbl of labelDefs) {
+        const ls = log.step(`Label: ${lbl.name}`);
+        if (existingLabels.has(lbl.name)) { ls.skip("already exists"); continue; }
+        if (dryRun) { ls.dry("would create"); continue; }
+        try {
+          await rest("POST", `/repos/${repoName}/labels`, { name: lbl.name, color: lbl.color, description: lbl.description });
+          ls.ok("created");
+        } catch (e) { ls.err(e.message); }
+      }
+    }
+
+    // ── Done ───────────────────────────────────────────────────
+    log.addDivider();
+    if (dryRun) {
+      log.info("Dry run complete. Uncheck 'Dry run' and run again to apply changes.");
+      show($id("bannerDry"));
+    } else {
+      finalUrl = projectUrl;
+      log.info(`Done. Project #${projectNumber} → ${projectUrl}`);
+      $id("projectLink").href   = projectUrl;
+      $id("bannerMsg").textContent = `Project #${projectNumber} created.`;
+      show($id("bannerOk"));
+    }
+
+  } catch (e) {
+    $id("bannerErrMsg").textContent = e.message;
+    show($id("bannerErr"));
+  } finally {
+    setRunning(false);
+  }
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+function show(el) { el.classList.remove("hidden"); }
+function hide(el) { el.classList.add("hidden"); }
+
+let _running = false;
+function setRunning(v) {
+  _running = v;
+  const btn = $id("runBtn");
+  btn.disabled = v || !_token;
+  btn.innerHTML = v
+    ? `<span class="spinner"></span> Running…`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Onboarding`;
+}
+
+function hideBanners() {
+  ["bannerOk","bannerDry","bannerErr"].forEach(id => hide($id(id)));
+}
+
+// ── Auth flow — GitHub Device Authorization Grant ────────────────────────────
+const GH_DEVICE_CODE_URL  = "https://github-oauth-proxy.itlusions.workers.dev/device/code";
+const GH_DEVICE_TOKEN_URL = "https://github-oauth-proxy.itlusions.workers.dev/access_token";
+const DEVICE_SCOPE        = "project repo read:org";
+
+let _pollTimer    = null;
+let _pollInterval = 5000;
+
+// Client ID baked in — public by design (OAuth App client_id is not a secret)
+function loadClientId() { return $id("clientIdInput").value; }
+function saveClientId() {}  // no-op
+
+const GH_MARK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>`;
+
+async function startDeviceFlow() {
+  const clientId = $id("clientIdInput").value.trim();
+  const errEl    = $id("authError");
+  hide(errEl);
+
+  if (!clientId) {
+    errEl.textContent = "Configuration error: Client ID missing.";
+    show(errEl);
+    return;
+  }
+
+  const btn = $id("startLoginBtn");
+  btn.disabled    = true;
+  btn.textContent = "Starting…";
+
+  try {
+    const res = await fetch(GH_DEVICE_CODE_URL, {
+      method:  "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+      body:    new URLSearchParams({ client_id: clientId, scope: DEVICE_SCOPE }),
+    });
+    if (!res.ok) throw new Error(`GitHub returned HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error_description || data.error);
+
+    $id("deviceUserCode").textContent = data.user_code;
+    $id("deviceVerifyLink").href      = data.verification_uri || "https://github.com/login/device";
+    $id("deviceStatus").innerHTML     = `<span class="spinner"></span> Waiting for authorization…`;
+    hide($id("authClientId"));
+    show($id("authDevice"));
+
+    window.open(data.verification_uri || "https://github.com/login/device", "_blank", "noopener,noreferrer");
+
+    _pollInterval = (data.interval || 5) * 1000;
+    const expiresAt = Date.now() + (data.expires_in || 900) * 1000;
+    schedulePoll(clientId, data.device_code, expiresAt);
+
+  } catch (e) {
+    const isCors = e instanceof TypeError;
+    errEl.textContent = isCors
+      ? "Could not reach github.com. This may be a network or CORS issue. Check the browser console."
+      : e.message;
+    show(errEl);
+    btn.disabled = false;
+    btn.innerHTML = `${GH_MARK} Login with GitHub`;
+  }
+}
+
+function schedulePoll(clientId, deviceCode, expiresAt) {
+  _pollTimer = setTimeout(() => pollForToken(clientId, deviceCode, expiresAt), _pollInterval);
+}
+
+async function pollForToken(clientId, deviceCode, expiresAt) {
+  if (Date.now() > expiresAt) { setDeviceError("Code expired. Please try again."); return; }
+
+  try {
+    const res = await fetch(GH_DEVICE_TOKEN_URL, {
+      method:  "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+      body:    new URLSearchParams({
+        client_id:   clientId,
+        device_code: deviceCode,
+        grant_type:  "urn:ietf:params:oauth:grant-type:device_code",
+      }),
+    });
+    const data = await res.json();
+
+    if (data.access_token) {
+      clearTimeout(_pollTimer);
+      _token = data.access_token;
+      await onAuthenticated();
+      return;
+    }
+
+    switch (data.error) {
+      case "authorization_pending": break;
+      case "slow_down":    _pollInterval = Math.min(_pollInterval + 5000, 30000); break;
+      case "expired_token": setDeviceError("Code expired. Please try again."); return;
+      case "access_denied": setDeviceError("Authorization denied."); return;
+      default: setDeviceError(data.error_description || data.error || "Unknown error"); return;
+    }
+    schedulePoll(clientId, deviceCode, expiresAt);
+  } catch (_) {
+    // Network hiccup — back off
+    _pollInterval = Math.min(_pollInterval * 2, 30000);
+    schedulePoll(clientId, deviceCode, expiresAt);
+  }
+}
+
+function setDeviceError(msg) {
+  $id("deviceStatus").innerHTML = `<span style="color:var(--error)">${esc(msg)}</span>`;
+  $id("cancelDeviceBtn").textContent = "Try again";
+}
+
+async function onAuthenticated() {
+  const res    = await fetch(`${GH_REST}/user`, {
+    headers: { "Authorization": `Bearer ${_token}`, "Accept": "application/vnd.github+json" },
+  });
+  const user   = await res.json();
+  const scopes = (res.headers.get("X-OAuth-Scopes") || "").split(",").map(s => s.trim()).filter(Boolean);
+
+  const scopeHtml = scopes.length
+    ? scopes.map(s => `<span class="scope-tag">${esc(s)}</span>`).join("")
+    : `<span class="scope-tag warn">check app permissions</span>`;
+
+  const av = $id("authAvatar");
+  av.innerHTML = user.avatar_url
+    ? `<img src="${esc(user.avatar_url)}" alt="" />`
+    : esc((user.login || "?")[0].toUpperCase());
+
+  $id("authName").textContent = user.name ? `${user.name} (@${user.login})` : `@${user.login}`;
+  $id("authScopes").innerHTML = scopeHtml;
+
+  hide($id("authClientId"));
+  hide($id("authDevice"));
+  show($id("authConfirmed"));
+  show($id("logoutBtn"));
+  $id("runBtn").disabled = false;
+}
+
+$id("startLoginBtn").addEventListener("click", startDeviceFlow);
+$id("clientIdInput").addEventListener("keydown", e => { if (e.key === "Enter") startDeviceFlow(); });
+
+$id("deviceUserCode").addEventListener("click", () => {
+  const code = $id("deviceUserCode").textContent;
+  const statusEl = $id("deviceStatus");
+  const prev = statusEl.innerHTML;
+  navigator.clipboard?.writeText(code).then(() => {
+    statusEl.innerHTML = `<span style="color:var(--success)">Copied to clipboard.</span>`;
+    setTimeout(() => { statusEl.innerHTML = prev; }, 2000);
+  }).catch(() => {});
+});
+
+$id("cancelDeviceBtn").addEventListener("click", () => {
+  clearTimeout(_pollTimer);
+  hide($id("authDevice"));
+  show($id("authClientId"));
+  const btn = $id("startLoginBtn");
+  btn.disabled  = false;
+  btn.innerHTML = `${GH_MARK} Login with GitHub`;
+});
+
+$id("logoutBtn").addEventListener("click", () => {
+  clearTimeout(_pollTimer);
+  _token = null;
+  hide($id("authConfirmed"));
+  hide($id("logoutBtn"));
+  show($id("authClientId"));
+  $id("runBtn").disabled = true;
+});
+
+// ── Chips ─────────────────────────────────────────────────────────────────────
+const chipsContainer = $id("chipsContainer");
+const chipInput      = $id("chipInput");
+
+function renderChips() {
+  chipsContainer.querySelectorAll(".chip").forEach(c => c.remove());
+  categories.forEach((cat, i) => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.innerHTML = `${esc(cat)}<button class="chip-remove" data-i="${i}" aria-label="Remove">&times;</button>`;
+    chipsContainer.insertBefore(chip, chipInput);
+  });
+}
+
+chipsContainer.addEventListener("click", e => {
+  const btn = e.target.closest(".chip-remove");
+  if (btn) { categories.splice(parseInt(btn.dataset.i), 1); renderChips(); }
+  else     { chipInput.focus(); }
+});
+
+function addChip(raw) {
+  const v = raw.trim().replace(/,+$/, "").trim();
+  if (v && !categories.includes(v)) { categories.push(v); renderChips(); }
+  chipInput.value = "";
+}
+
+chipInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addChip(chipInput.value); }
+  if (e.key === "Backspace" && !chipInput.value && categories.length) { categories.pop(); renderChips(); }
+});
+chipInput.addEventListener("blur", () => { if (chipInput.value.trim()) addChip(chipInput.value); });
+
+// ── Defaults ─────────────────────────────────────────────────────────────────
+document.getElementById("yr").textContent  = new Date().getFullYear();
+document.getElementById("sprintStart").value = new Date().toISOString().split("T")[0];
+renderChips();
+
+// ── Run button ────────────────────────────────────────────────────────────────
+$id("runBtn").addEventListener("click", async () => {
+  if (_running) return;
+
+  const title = $id("projectTitle").value.trim();
+  const err   = $id("runError");
+  hide(err);
+  if (!title) { err.textContent = "Project Title is required."; show(err); return; }
+  if (!_token) { err.textContent = "Authenticate first."; show(err); return; }
+
+  hideBanners();
+  setRunning(true);
+
+  // Clear old log
+  const logBody = $id("logBody");
+  logBody.innerHTML = "";
+  const ph = document.createElement("div");
+  ph.id = "logPlaceholder";
+  ph.className = "log-placeholder hidden";
+  logBody.appendChild(ph);
+
+  await runOnboarding({
+    org:          $id("org").value.trim() || "ITlusions",
+    title,
+    repoName:     $id("repoName").value.trim(),
+    preset:       document.querySelector('input[name="preset"]:checked')?.value || "full",
+    cats:         [...categories],
+    sprintCount:  parseInt($id("sprintCount").value) || 0,
+    sprintLength: parseInt($id("sprintLength").value) || 14,
+    sprintStart:  $id("sprintStart").value || new Date().toISOString().split("T")[0],
+    createLabels: $id("createLabels").checked,
+    skipIfExists: $id("skipIfExists").checked,
+    dryRun:       $id("dryRun").checked,
+  });
+});
+
+// ── Clear log ─────────────────────────────────────────────────────────────────
+$id("clearLogBtn").addEventListener("click", () => {
+  $id("logBody").innerHTML = `<div class="log-placeholder" id="logPlaceholder">Authenticate and click Run to begin.</div>`;
+  hideBanners();
+});
+
+// ── Nav hamburger ─────────────────────────────────────────────────────────────
+const navToggle = $id("nav-toggle");
+const navLinks  = $id("nav-links");
+navToggle.addEventListener("click", () => {
+  const open = navLinks.classList.toggle("open");
+  navToggle.classList.toggle("open", open);
+  navToggle.setAttribute("aria-expanded", open);
+});
+navLinks.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
+  navLinks.classList.remove("open");
+  navToggle.classList.remove("open");
+  navToggle.setAttribute("aria-expanded", false);
+}));
+</script>
+</body>
+</html>

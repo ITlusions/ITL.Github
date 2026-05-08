@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onboard a Project — ITL.Github</title>
+  <meta name="description" content="Interactive project onboarding tool. Fill in your project details and get a ready-to-run PowerShell command for onboard-project.ps1." />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --accent: #1f6feb;
+      --accent-glow: rgba(31, 111, 235, 0.15);
+      --accent2: #58a6ff;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --success: #3fb950;
+      --warning: #d29922;
+      --error: #f85149;
+      --purple: #6e40c9;
+      --tag-bg: #1f3347;
+      --tag-text: #58a6ff;
+      --radius: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600; font-size: 0.9rem; color: var(--text); text-decoration: none;
+    }
+    .nav-brand:hover { color: var(--accent2); text-decoration: none; }
+    .nav-links { display: flex; gap: 4px; list-style: none; }
+    .nav-links a { color: var(--muted); font-size: 0.875rem; padding: 4px 10px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+    .nav-links a:hover { color: var(--text); background: var(--surface2); text-decoration: none; }
+    .nav-links a.active { color: var(--accent2); background: var(--accent-glow); }
+    .nav-toggle { display: none; flex-direction: column; justify-content: space-between; width: 22px; height: 16px; background: none; border: none; cursor: pointer; padding: 0; }
+    .nav-toggle span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: transform 0.2s, opacity 0.2s; }
+    .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ── Page header ── */
+    .page-header {
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem 2.5rem;
+      background: radial-gradient(ellipse at 50% 0%, rgba(31, 111, 235, 0.10) 0%, transparent 65%);
+    }
+    .page-header-inner { max-width: 1200px; margin: 0 auto; }
+    .page-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--tag-bg); color: var(--tag-text);
+      border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 2rem;
+      padding: 3px 12px; font-size: 0.78rem; font-weight: 500; margin-bottom: 1rem;
+    }
+    .page-header h1 { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .page-header p { color: var(--muted); max-width: 560px; font-size: 1rem; }
+
+    /* ── Main layout ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 4rem; display: grid; grid-template-columns: 1fr 440px; gap: 2rem; align-items: start; }
+
+    /* ── Form card ── */
+    .form-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .form-section { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+    .form-section:last-child { border-bottom: none; }
+    .form-section-title {
+      font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--accent2); margin-bottom: 1.25rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .form-section-title svg { flex-shrink: 0; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .field-row.single { grid-template-columns: 1fr; }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 0.82rem; font-weight: 500; color: var(--text); }
+    .field .hint { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .required-star { color: var(--error); margin-left: 2px; }
+
+    input[type="text"], input[type="number"], input[type="date"], select {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 0.875rem;
+      padding: 8px 10px; outline: none; width: 100%;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, select:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.15);
+    }
+    input[type="text"].invalid, input[type="text"]:required:invalid:not(:placeholder-shown) {
+      border-color: var(--error);
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+
+    /* ── Radio / checkbox group ── */
+    .radio-group, .check-group { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .radio-option, .check-option {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 7px 12px; cursor: pointer;
+      font-size: 0.84rem; transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .radio-option:has(input:checked), .check-option:has(input:checked) {
+      border-color: var(--accent); background: var(--accent-glow); color: var(--accent2);
+    }
+    .radio-option input, .check-option input { accent-color: var(--accent); }
+
+    /* ── Category chips ── */
+    .chips-container {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 8px; min-height: 42px;
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+      cursor: text; transition: border-color 0.15s;
+    }
+    .chips-container:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.15); }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--tag-bg); border: 1px solid rgba(88, 166, 255, 0.3);
+      color: var(--tag-text); border-radius: 4px; padding: 2px 8px;
+      font-size: 0.78rem; font-weight: 500; white-space: nowrap;
+    }
+    .chip-remove {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      padding: 0; line-height: 1; font-size: 0.9rem; display: flex; align-items: center;
+      transition: color 0.1s;
+    }
+    .chip-remove:hover { color: var(--error); }
+    .chip-input {
+      background: none; border: none; outline: none; color: var(--text);
+      font-size: 0.84rem; font-family: inherit; min-width: 120px; flex: 1;
+      padding: 2px 4px;
+    }
+
+    /* ── Preview panel ── */
+    .preview-panel { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 1rem; }
+    .preview-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .preview-header {
+      padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .preview-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .copy-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px; font-size: 0.78rem;
+      color: var(--muted); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+      font-family: inherit;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--accent); background: var(--accent-glow); }
+    .copy-btn.copied { color: var(--success); border-color: var(--success); background: rgba(63, 185, 80, 0.1); }
+    pre.cmd-preview {
+      padding: 1rem; font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.78rem; line-height: 1.65; color: var(--text);
+      overflow-x: auto; white-space: pre; background: transparent;
+      max-height: 400px; overflow-y: auto;
+    }
+    pre.cmd-preview .ps-param { color: var(--accent2); }
+    pre.cmd-preview .ps-value { color: #a5d6ff; }
+    pre.cmd-preview .ps-switch { color: var(--success); }
+    pre.cmd-preview .ps-cmd   { color: var(--warning); }
+    pre.cmd-preview .ps-comment { color: var(--muted); font-style: italic; }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+    }
+    .info-box-title { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; }
+    .info-box ol, .info-box ul { padding-left: 1.25rem; }
+    .info-box li { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .info-box code { font-family: ui-monospace, Consolas, monospace; font-size: 0.8em; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--accent2); }
+
+    /* ── Validation notice ── */
+    .validation-notice {
+      display: none; align-items: center; gap: 8px;
+      background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 6px; padding: 8px 12px; font-size: 0.82rem; color: var(--error);
+      margin: 0 1.5rem 1rem;
+    }
+    .validation-notice.show { display: flex; }
+
+    /* ── Footer ── */
+    footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; font-size: 0.82rem; color: var(--muted); }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) { .main { grid-template-columns: 1fr; } .preview-panel { position: static; } }
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-toggle { display: flex; }
+      .nav-links { display: none; position: absolute; top: 56px; left: 0; right: 0; flex-direction: column; gap: 0; background: rgba(13, 17, 23, 0.97); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0.5rem 0; z-index: 99; }
+      .nav-links.open { display: flex; }
+      .nav-links li { width: 100%; }
+      .nav-links a { display: block; padding: 0.75rem 1.5rem; border-radius: 0; font-size: 0.95rem; color: var(--text); }
+      .page-header { padding: 2rem 1.25rem; }
+      .main { padding: 1.5rem 1.25rem 3rem; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+    </svg>
+    ITL.Github
+  </a>
+  <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" id="nav-toggle">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="index#workflows">Workflows</a></li>
+    <li><a href="index#actions">Actions</a></li>
+    <li><a href="index#pipelines">Pipelines</a></li>
+    <li><a href="index#docs">Docs</a></li>
+    <li><a href="getting-started">Get Started</a></li>
+    <li><a href="onboard" class="active">Onboard</a></li>
+    <li><a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+    <div>
+      <div class="page-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        onboard-project.ps1 — interactive command builder
+      </div>
+      <h1>Onboard a New Project</h1>
+      <p>Fill in your project details below. A ready-to-run PowerShell command is generated live on the right — copy it and run it locally with the <code>gh</code> CLI.</p>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <a href="onboard" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:.82rem;font-weight:500;border:1px solid #1f6feb;background:rgba(31,111,235,.15);color:#58a6ff;text-decoration:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Command Builder
+      </a>
+      <a href="onboard-live" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:.82rem;font-weight:500;border:1px solid #30363d;background:#21262d;color:#8b949e;text-decoration:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Live Run
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── Left: Form ── -->
+  <div>
+    <div id="validation-notice" class="validation-notice">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Project Title is required.
+    </div>
+
+    <div class="form-card">
+
+      <!-- Project -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Project
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="projectTitle">Project Title <span class="required-star">*</span></label>
+            <input type="text" id="projectTitle" placeholder="e.g. My Service" autocomplete="off" />
+            <span class="hint">Display title for the GitHub Project.</span>
+          </div>
+          <div class="field">
+            <label for="org">Organisation</label>
+            <input type="text" id="org" value="ITlusions" placeholder="e.g. ITlusions" autocomplete="off" />
+            <span class="hint">GitHub organisation login.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repository -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Repository
+        </div>
+        <div class="field-row single">
+          <div class="field">
+            <label for="repoName">Repository (optional)</label>
+            <input type="text" id="repoName" placeholder="e.g. ITlusions/ITL.MyService" autocomplete="off" />
+            <span class="hint">Required for milestones, labels, and linking. Format: <code>owner/repo</code></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preset -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Preset
+        </div>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="preset" value="basic" />
+            <div>
+              <div style="font-weight:500">Basic</div>
+              <div style="font-size:0.75rem;color:var(--muted)">Sprint, Priority, Story Points, Category</div>
+            </div>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="preset" value="full" checked />
+            <div>
+              <div style="font-weight:500">Full <span style="font-size:0.7rem;background:var(--tag-bg);color:var(--tag-text);border-radius:3px;padding:1px 6px;margin-left:4px;border:1px solid rgba(88,166,255,0.3)">recommended</span></div>
+              <div style="font-size:0.75rem;color:var(--muted)">Basic + Work Type, Effort, Epic, Blocked, Risk</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Category Options
+        </div>
+        <div class="field">
+          <label>Categories <span style="color:var(--muted);font-weight:400">(press Enter or comma to add)</span></label>
+          <div class="chips-container" id="chipsContainer">
+            <!-- chips injected by JS -->
+            <input type="text" class="chip-input" id="chipInput" placeholder="Add category..." autocomplete="off" />
+          </div>
+          <span class="hint">These become the single-select options for the Category field in the project.</span>
+        </div>
+      </div>
+
+      <!-- Sprints -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Sprints
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="sprintCount">Number of Sprints</label>
+            <input type="number" id="sprintCount" value="0" min="0" max="52" />
+            <span class="hint">Set to 0 to skip GitHub Milestones. Requires repository.</span>
+          </div>
+          <div class="field">
+            <label for="sprintLength">Sprint Length (days)</label>
+            <input type="number" id="sprintLength" value="14" min="1" max="90" />
+          </div>
+        </div>
+        <div class="field-row single" style="margin-top:1rem">
+          <div class="field">
+            <label for="sprintStart">Sprint 1 Start Date</label>
+            <input type="date" id="sprintStart" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          Options
+        </div>
+        <div class="check-group">
+          <label class="check-option">
+            <input type="checkbox" id="createLabels" />
+            <div>
+              <div style="font-weight:500">Create Labels</div>
+              <div style="font-size:0.75rem;color:var(--muted)">type:epic, type:story, type:task, type:bug, type:spike</div>
+            </div>
+          </label>
+          <label class="check-option">
+            <input type="checkbox" id="createViews" />
+            <div>
+              <div style="font-weight:500">Generate Views Guide</div>
+              <div style="font-size:0.75rem;color:var(--muted)">Outputs Board, Sprint Board, Backlog setup URLs</div>
+            </div>
+          </label>
+          <label class="check-option">
+            <input type="checkbox" id="skipIfExists" />
+            <div>
+              <div style="font-weight:500">Skip If Exists</div>
+              <div style="font-size:0.75rem;color:var(--muted)">Reuse an existing project instead of aborting</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+    </div><!-- /form-card -->
+  </div><!-- /left -->
+
+  <!-- ── Right: Preview ── -->
+  <div class="preview-panel">
+
+    <div class="preview-card">
+      <div class="preview-header">
+        <span class="preview-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          Generated Command
+        </span>
+        <button class="copy-btn" id="copyBtn" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre class="cmd-preview" id="cmdPreview"></pre>
+    </div>
+
+    <div class="info-box">
+      <div class="info-box-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        How to run
+      </div>
+      <ol>
+        <li>Authenticate: <code>gh auth login --scopes project,repo</code></li>
+        <li>Download the script: <code>onboard-project.ps1</code> from <a href="https://github.com/ITlusions/ITL.Github/blob/main/.github/scripts/onboard-project.ps1" target="_blank" rel="noopener">ITL.Github</a></li>
+        <li>Paste and run the generated command in a PowerShell terminal.</li>
+      </ol>
+    </div>
+
+    <div class="info-box">
+      <div class="info-box-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        What gets created
+      </div>
+      <ul id="whatList" style="padding-left:1.25rem">
+        <li>GitHub ProjectV2 with Agile fields</li>
+        <li>Sprint (Iteration), Priority, Story Points, Category</li>
+        <li id="fullFieldsNote" style="display:none">Work Type, Effort, Epic, Blocked, Risk</li>
+        <li id="labelsNote" style="display:none">Issue labels: type:epic, type:story, type:task, type:bug, type:spike</li>
+        <li id="milestonesNote" style="display:none">GitHub Milestones for each sprint</li>
+        <li id="repoLinkNote" style="display:none">Repository linked to the project</li>
+      </ul>
+    </div>
+
+  </div><!-- /preview-panel -->
+
+</div><!-- /main -->
+
+<footer>
+  <p>
+    &copy; <span id="yr"></span>
+    <a href="https://github.com/ITlusions" target="_blank" rel="noopener">ITlusions</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">ITL.Github on GitHub</a>
+    &nbsp;·&nbsp;
+    MIT License
+  </p>
+</footer>
+
+<script>
+  // ── Nav hamburger ──────────────────────────────────────────────
+  document.getElementById("yr").textContent = new Date().getFullYear();
+  const navToggle = document.getElementById("nav-toggle");
+  const navLinks  = document.getElementById("nav-links");
+  navToggle.addEventListener("click", () => {
+    const open = navLinks.classList.toggle("open");
+    navToggle.classList.toggle("open", open);
+    navToggle.setAttribute("aria-expanded", open);
+  });
+  navLinks.querySelectorAll("a").forEach(a => {
+    a.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      navToggle.classList.remove("open");
+      navToggle.setAttribute("aria-expanded", false);
+    });
+  });
+
+  // ── Default sprint start = today ──────────────────────────────
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("sprintStart").value = today;
+
+  // ── Chips ──────────────────────────────────────────────────────
+  const DEFAULT_CATEGORIES = ["Workflows","Actions","Documentation","Testing","Security","Tooling"];
+  let categories = [...DEFAULT_CATEGORIES];
+
+  const chipsContainer = document.getElementById("chipsContainer");
+  const chipInput      = document.getElementById("chipInput");
+
+  function renderChips() {
+    chipsContainer.querySelectorAll(".chip").forEach(c => c.remove());
+    categories.forEach((cat, i) => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.innerHTML = `${escHtml(cat)}<button class="chip-remove" data-i="${i}" aria-label="Remove ${escHtml(cat)}">&times;</button>`;
+      chipsContainer.insertBefore(chip, chipInput);
+    });
+    updatePreview();
+  }
+
+  chipsContainer.addEventListener("click", e => {
+    const btn = e.target.closest(".chip-remove");
+    if (btn) {
+      categories.splice(parseInt(btn.dataset.i), 1);
+      renderChips();
+    } else {
+      chipInput.focus();
+    }
+  });
+
+  function addChip(raw) {
+    const val = raw.trim().replace(/,+$/, "").trim();
+    if (val && !categories.includes(val)) {
+      categories.push(val);
+      renderChips();
+    }
+    chipInput.value = "";
+  }
+
+  chipInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addChip(chipInput.value); }
+    if (e.key === "Backspace" && chipInput.value === "" && categories.length > 0) {
+      categories.pop(); renderChips();
+    }
+  });
+  chipInput.addEventListener("blur", () => { if (chipInput.value.trim()) addChip(chipInput.value); });
+
+  renderChips();
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  function escPs(s)   { return s.replace(/'/g, "''"); }
+
+  function span(cls, text) {
+    return `<span class="${cls}">${escHtml(text)}</span>`;
+  }
+
+  // ── Command builder ────────────────────────────────────────────
+  let rawCommand = "";
+
+  function buildCommand() {
+    const title    = document.getElementById("projectTitle").value.trim();
+    const org      = document.getElementById("org").value.trim() || "ITlusions";
+    const repo     = document.getElementById("repoName").value.trim();
+    const preset   = document.querySelector('input[name="preset"]:checked')?.value || "full";
+    const catOpts  = categories.join(",");
+    const sprintCt = parseInt(document.getElementById("sprintCount").value) || 0;
+    const sprintLn = parseInt(document.getElementById("sprintLength").value) || 14;
+    const sprintSt = document.getElementById("sprintStart").value || today;
+    const labels   = document.getElementById("createLabels").checked;
+    const views    = document.getElementById("createViews").checked;
+    const skip     = document.getElementById("skipIfExists").checked;
+
+    // Validation notice
+    const notice = document.getElementById("validation-notice");
+    if (!title) {
+      notice.classList.add("show");
+    } else {
+      notice.classList.remove("show");
+    }
+
+    // Update "what gets created" list
+    document.getElementById("fullFieldsNote").style.display   = preset === "full" ? "list-item" : "none";
+    document.getElementById("labelsNote").style.display       = labels             ? "list-item" : "none";
+    document.getElementById("milestonesNote").style.display   = sprintCt > 0       ? "list-item" : "none";
+    document.getElementById("repoLinkNote").style.display     = repo               ? "list-item" : "none";
+
+    // Build args list (for raw copy)
+    const args = [];
+    if (org !== "ITlusions") args.push(`-Org '${escPs(org)}'`);
+    args.push(`-ProjectTitle '${escPs(title || "My Project")}'`);
+    if (repo)              args.push(`-RepoName '${escPs(repo)}'`);
+    if (preset !== "full") args.push(`-Preset basic`);
+    if (catOpts)           args.push(`-CategoryOptions '${escPs(catOpts)}'`);
+    if (sprintCt > 0)      args.push(`-SprintCount ${sprintCt}`);
+    if (sprintLn !== 14)   args.push(`-SprintLengthDays ${sprintLn}`);
+    if (sprintSt !== today) args.push(`-SprintStartDate '${sprintSt}'`);
+    if (labels)            args.push(`-CreateLabels`);
+    if (views)             args.push(`-CreateViews`);
+    if (skip)              args.push(`-SkipIfExists`);
+
+    rawCommand = ".\\onboard-project.ps1 `\n    " + args.join(" `\n    ");
+
+    // Build highlighted HTML
+    const lines = [];
+    lines.push(span("ps-cmd", ".\\onboard-project.ps1") + " `");
+
+    const paramLines = args.map((arg, i) => {
+      const cont   = i < args.length - 1 ? " `" : "";
+      if (arg.startsWith("-") && arg.includes(" ")) {
+        const spaceIdx = arg.indexOf(" ");
+        const paramName = arg.slice(0, spaceIdx);
+        const paramVal  = arg.slice(spaceIdx + 1);
+        return "    " + span("ps-param", paramName) + " " + span("ps-value", paramVal) + cont;
+      } else if (arg.startsWith("-") && !arg.includes(" ")) {
+        return "    " + span("ps-switch", arg) + cont;
+      }
+      return "    " + escHtml(arg) + cont;
+    });
+
+    const preview = document.getElementById("cmdPreview");
+    preview.innerHTML = lines.join("\n") + "\n" + paramLines.join("\n");
+  }
+
+  // ── Wire all inputs ────────────────────────────────────────────
+  ["projectTitle","org","repoName","sprintCount","sprintLength","sprintStart"].forEach(id => {
+    document.getElementById(id).addEventListener("input", buildCommand);
+  });
+  document.querySelectorAll('input[name="preset"]').forEach(r => r.addEventListener("change", buildCommand));
+  ["createLabels","createViews","skipIfExists"].forEach(id => {
+    document.getElementById(id).addEventListener("change", buildCommand);
+  });
+
+  buildCommand(); // initial render
+
+  // ── Copy button ────────────────────────────────────────────────
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    if (!rawCommand) return;
+    navigator.clipboard.writeText(rawCommand).then(() => {
+      const btn = document.getElementById("copyBtn");
+      btn.classList.add("copied");
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+      }, 2000);
+    });
+  });
+</script>
+</body>
+</html>
