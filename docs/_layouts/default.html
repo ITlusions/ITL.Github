@@ -389,8 +389,19 @@
 </script>
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  // Jekyll renders ```mermaid as <pre><code class="language-mermaid">.
+  // Mermaid needs <pre class="mermaid"> — convert before init.
+  document.querySelectorAll("pre code.language-mermaid").forEach(code => {
+    const pre = code.parentElement;
+    const div = document.createElement("pre");
+    div.className = "mermaid";
+    div.textContent = code.textContent;
+    pre.replaceWith(div);
+  });
+
   mermaid.initialize({
-    startOnLoad: true,
+    startOnLoad: false,
     theme: "dark",
     themeVariables: {
       background: "#161b22",
@@ -407,6 +418,8 @@
       nodeTextColor: "#e6edf3"
     }
   });
+
+  await mermaid.run({ querySelector: ".mermaid" });
 </script>
 </body>
 </html>
