@@ -1,0 +1,23 @@
+title: ITL.Github — Shared Actions & Workflows
+description: Reusable GitHub Actions workflows and composite actions shared across all ITLusions repositories.
+baseurl: "/ITL.Github"
+url: "https://itlusions.github.io"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Exclude files that shouldn't be built as pages
+exclude:
+  - "*.py"
+  - "*.sh"
+  - "docker-compose.yml"
+  - "Dockerfile"
+  - "pyproject.toml"
+  - "README.md"
