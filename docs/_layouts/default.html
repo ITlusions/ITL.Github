@@ -339,13 +339,14 @@
     <span></span><span></span><span></span>
   </button>
   <ul class="nav-links" id="nav-links">
-    <li><a href="{{ '/getting-started' | relative_url }}"{% if page.url contains 'getting-started' %} class="active"{% endif %}>Getting Started</a></li>
-    <li><a href="{{ '/versioning' | relative_url }}"{% if page.url contains 'versioning' %} class="active"{% endif %}>Versioning</a></li>
-    <li><a href="{{ '/workflows/' | relative_url }}"{% if page.url contains '/workflows/' %} class="active"{% endif %}>Workflows</a></li>
-    <li><a href="{{ '/actions/' | relative_url }}"{% if page.url contains '/actions/' %} class="active"{% endif %}>Actions</a></li>
-    <li><a href="{{ '/guides/python-library' | relative_url }}"{% if page.url contains 'python-library' %} class="active"{% endif %}>Python Guide</a></li>
-    <li><a href="{{ '/guides/docker-service' | relative_url }}"{% if page.url contains 'docker-service' %} class="active"{% endif %}>Docker Guide</a></li>
-    <li><a href="https://github.com/ITlusions/ITL.Github" target="_blank">GitHub</a></li>
+    <li><a href="{{ '/' | relative_url }}#workflows"{% if page.url contains '/workflows/' %} class="active"{% endif %}>Workflows</a></li>
+    <li><a href="{{ '/' | relative_url }}#actions"{% if page.url contains '/actions/' %} class="active"{% endif %}>Actions</a></li>
+    <li><a href="{{ '/' | relative_url }}#pipelines">Pipelines</a></li>
+    <li><a href="{{ '/' | relative_url }}#docs">Docs</a></li>
+    <li><a href="{{ '/getting-started' | relative_url }}"{% if page.url contains 'getting-started' or page.url contains 'versioning' %} class="active"{% endif %}>Get Started</a></li>
+    <li><a href="{{ '/onboard' | relative_url }}">Onboard</a></li>
+    <li><a href="{{ '/onboard-live' | relative_url }}">Live Run</a></li>
+    <li><a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">GitHub</a></li>
   </ul>
 </nav>
 
