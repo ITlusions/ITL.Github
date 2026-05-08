@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITL.Github — Shared GitHub Actions for ITLusions</title>
+  <meta name="description" content="Reusable workflows and composite actions shared across all ITLusions repositories. Build once, ship everywhere." />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --accent: #1f6feb;
+      --accent-glow: rgba(31, 111, 235, 0.15);
+      --accent2: #58a6ff;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --success: #3fb950;
+      --warning: #d29922;
+      --purple: #6e40c9;
+      --tag-bg: #1f3347;
+      --tag-text: #58a6ff;
+      --radius: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.85em;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: var(--accent2);
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav-brand:hover { color: var(--accent2); text-decoration: none; }
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      font-size: 0.875rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--surface2); text-decoration: none; }
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 22px; height: 16px;
+      background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .nav-toggle span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: transform 0.2s, opacity 0.2s; }
+    .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 5rem;
+      background: radial-gradient(ellipse at 50% 0%, rgba(31, 111, 235, 0.12) 0%, transparent 70%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-radius: 2rem;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #e6edf3 0%, #58a6ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      border: none;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); text-decoration: none; }
+    .btn-primary  { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+    .badges {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 2.5rem;
+    }
+    .badge-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      padding: 3px 12px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .badge-pill .dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+    section { padding: 5rem 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      color: var(--muted);
+      max-width: 560px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── Pipeline flow ── */
+    .flow-wrap { overflow-x: auto; padding-bottom: 0.5rem; }
+    .flow {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      min-width: max-content;
+    }
+    .flow-node { display: flex; flex-direction: column; align-items: center; }
+    .flow-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.7rem 1rem;
+      font-size: 0.8rem;
+      text-align: center;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .flow-box.highlight {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: var(--accent2);
+      font-weight: 600;
+    }
+    .flow-box.muted { color: var(--muted); }
+    .flow-arrow {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      width: 36px;
+      flex-shrink: 0;
+      padding-top: 20px;
+      color: var(--muted);
+      font-size: 1.1rem;
+    }
+    .flow-sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: center;
+      max-width: 100px;
+    }
+    .flow-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 2rem;
+    }
+    .flow-group-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Workflow cards ── */
+    .workflows-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 1rem;
+    }
+    .workflow-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .workflow-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+    .workflow-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .workflow-card:nth-child(1)::before { background: #58a6ff; }
+    .workflow-card:nth-child(2)::before { background: #238636; }
+    .workflow-card:nth-child(3)::before { background: #1f6feb; }
+    .workflow-card:nth-child(4)::before { background: #9e6a03; }
+    .workflow-card:nth-child(5)::before { background: #6e40c9; }
+    .workflow-card:nth-child(6)::before { background: #f78166; }
+    .workflow-card:nth-child(7)::before { background: #3fb950; }
+
+    .wf-filename {
+      font-size: 0.72rem;
+      font-family: ui-monospace, Consolas, monospace;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+    }
+    .wf-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .wf-desc {
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .wf-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 0.9rem;
+    }
+    .wf-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 0.71rem;
+      color: var(--muted);
+      font-family: ui-monospace, Consolas, monospace;
+    }
+
+    /* ── Actions cards ── */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    .action-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .action-card:hover {
+      border-color: var(--purple);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+    .action-icon {
+      width: 36px; height: 36px;
+      background: rgba(110, 64, 201, 0.15);
+      border: 1px solid rgba(110, 64, 201, 0.3);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.85rem;
+    }
+    .action-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .action-desc  { font-size: 0.84rem; color: var(--muted); line-height: 1.55; }
+    .action-usage {
+      margin-top: 0.85rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+      font-family: ui-monospace, Consolas, monospace;
+      color: var(--muted);
+    }
+
+    /* ── Docs grid ── */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.75rem;
+    }
+    .doc-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+      text-decoration: none;
+    }
+    .doc-link:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+      color: var(--accent2);
+      text-decoration: none;
+    }
+    .doc-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .doc-title { font-weight: 500; font-size: 0.88rem; }
+    .doc-desc  { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .nav-links { gap: 2px; }
+      .nav-links a { font-size: 0.82rem; padding: 4px 7px; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-toggle { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 56px; left: 0; right: 0;
+        flex-direction: column;
+        gap: 0;
+        background: rgba(13, 17, 23, 0.97);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        padding: 0.5rem 0;
+        z-index: 99;
+      }
+      .nav-links.open { display: flex; }
+      .nav-links li { width: 100%; }
+      .nav-links a { display: block; padding: 0.75rem 1.5rem; border-radius: 0; font-size: 0.95rem; color: var(--text); }
+      .hero { padding: 4rem 1.25rem 3.5rem; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 280px; justify-content: center; }
+      .container { padding: 0 1.25rem; }
+      section { padding: 3.5rem 0; }
+    }
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 1.85rem; }
+      .badges { gap: 0.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+    </svg>
+    ITL.Github
+  </a>
+  <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" id="nav-toggle">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#workflows">Workflows</a></li>
+    <li><a href="#actions">Actions</a></li>
+    <li><a href="#pipelines">Pipelines</a></li>
+    <li><a href="#docs">Docs</a></li>
+    <li><a href="getting-started">Get Started</a></li>
+    <li><a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    Build once &middot; Ship everywhere &middot; No double builds &middot; OIDC auth
+  </div>
+  <h1>Shared GitHub Actions<br>for All ITLusions Repos</h1>
+  <p>Reusable workflows and composite actions that give every repository a consistent, version-aware CI/CD pipeline — from wheel build to PyPI publish and Docker image promotion.</p>
+  <div class="hero-actions">
+    <a href="getting-started" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+      Get Started
+    </a>
+    <a href="https://github.com/ITlusions/ITL.Github" class="btn btn-secondary" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      View on GitHub
+    </a>
+    <a href="guides/python-library" class="btn btn-secondary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Python Guide
+    </a>
+  </div>
+  <div class="badges">
+    <span class="badge-pill"><span class="dot" style="background:var(--success)"></span>7 reusable workflows</span>
+    <span class="badge-pill"><span class="dot" style="background:#1f6feb"></span>2 composite actions</span>
+    <span class="badge-pill"><span class="dot" style="background:#9e6a03"></span>OIDC Trusted Publishing</span>
+    <span class="badge-pill"><span class="dot" style="background:#6e40c9"></span>Build-once promotion</span>
+    <span class="badge-pill"><span class="dot" style="background:#f78166"></span>Semver auto-tag</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- Workflows -->
+  <section id="workflows">
+    <div class="container">
+      <p class="section-label">Reusable Workflows</p>
+      <h2 class="section-title">7 workflows, one consistent pipeline</h2>
+      <p class="section-sub">
+        Call any workflow from your repo with
+        <code>uses: ITlusions/ITL.Github/.github/workflows/&lt;name&gt;.yml@main</code>
+      </p>
+
+      <div class="workflows-grid">
+
+        <a class="workflow-card" href="workflows/detect-version">
+          <div class="wf-filename">_reusable-detect-version.yml</div>
+          <div class="wf-title">Detect Version</div>
+          <div class="wf-desc">Resolves a semver version from the current branch and git tags. Outputs a raw semver, a Docker-safe image tag, and a PEP 440 version for Python wheels.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">version</span>
+            <span class="wf-tag">image-tag</span>
+            <span class="wf-tag">python-version</span>
+            <span class="wf-tag">is-release</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/ci-python">
+          <div class="wf-filename">_reusable-ci-python.yml</div>
+          <div class="wf-title">CI — Python</div>
+          <div class="wf-desc">Lint (ruff) → test (pytest with PostgreSQL service) → build wheel. Injects the resolved version into <code>pyproject.toml</code> before building. Uploads the wheel as a GitHub artifact.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">ruff</span>
+            <span class="wf-tag">pytest</span>
+            <span class="wf-tag">postgres</span>
+            <span class="wf-tag">wheel</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/ci-docker">
+          <div class="wf-filename">_reusable-ci-docker.yml</div>
+          <div class="wf-title">CI — Docker</div>
+          <div class="wf-desc">Lint → test → Docker build, with support for a multi-repo checkout (repo + dependency side-by-side). Optionally pushes the image on <code>main</code> and <code>develop</code>.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">ruff</span>
+            <span class="wf-tag">docker buildx</span>
+            <span class="wf-tag">multi-repo</span>
+            <span class="wf-tag">ghcr.io</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/auto-tag">
+          <div class="wf-filename">_reusable-auto-tag.yml</div>
+          <div class="wf-title">Auto-tag</div>
+          <div class="wf-desc">Reads the highest <code>v*</code> tag in the repo and pushes a patch bump tag (<code>v0.1.3 → v0.1.4</code>) to the given commit SHA. Runs on <code>main</code> only.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">semver</span>
+            <span class="wf-tag">patch bump</span>
+            <span class="wf-tag">GH_PAT</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/docker-retag">
+          <div class="wf-filename">_reusable-docker-retag.yml</div>
+          <div class="wf-title">Docker Retag</div>
+          <div class="wf-desc">Promotes an existing image to a release tag using <code>docker buildx imagetools create</code> — a manifest-only operation. No rebuild, no digest mismatch between CI and production.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">imagetools</span>
+            <span class="wf-tag">no rebuild</span>
+            <span class="wf-tag">promotion</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/publish-pypi">
+          <div class="wf-filename">_reusable-publish-pypi.yml</div>
+          <div class="wf-title">Publish PyPI</div>
+          <div class="wf-desc">Downloads the wheel built by CI and publishes it to PyPI or TestPyPI via OIDC Trusted Publishing — no API tokens, no secrets. Routes stable tags to PyPI, pre-release tags to TestPyPI.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">OIDC</span>
+            <span class="wf-tag">twine</span>
+            <span class="wf-tag">PyPI</span>
+            <span class="wf-tag">TestPyPI</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/release-gh">
+          <div class="wf-filename">_reusable-release-gh.yml</div>
+          <div class="wf-title">GitHub Release</div>
+          <div class="wf-desc">Creates a GitHub Release for a given tag, auto-detects stable vs pre-release from the tag name, and optionally attaches a build artifact as a release asset.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">release notes</span>
+            <span class="wf-tag">asset upload</span>
+            <span class="wf-tag">pre-release</span>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Composite Actions -->
+  <section id="actions">
+    <div class="container">
+      <p class="section-label">Composite Actions</p>
+      <h2 class="section-title">Step-level building blocks</h2>
+      <p class="section-sub">
+        Use in <code>steps:</code> with
+        <code>uses: ITlusions/ITL.Github/actions/&lt;name&gt;@main</code>
+      </p>
+
+      <div class="actions-grid">
+
+        <a class="action-card" href="actions/setup-python-env">
+          <div class="action-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <div class="action-title">Setup Python Environment</div>
+          <div class="action-desc">Installs Python, configures pip caching keyed on your requirements file, installs dependencies, and runs an optional extra install command.</div>
+          <div class="action-usage">uses: ITlusions/ITL.Github/actions/setup-python-env@main</div>
+        </a>
+
+        <a class="action-card" href="actions/detect-release-type">
+          <div class="action-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="action-title">Detect Release Type</div>
+          <div class="action-desc">Inspects a semver version string and outputs <code>prerelease=true/false</code> and <code>release-type=stable/pre-release</code>. Used internally by the publish workflow.</div>
+          <div class="action-usage">uses: ITlusions/ITL.Github/actions/detect-release-type@main</div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline flows -->
+  <section id="pipelines">
+    <div class="container">
+      <p class="section-label">End-to-end Pipelines</p>
+      <h2 class="section-title">Two reference architectures, ready to copy</h2>
+      <p class="section-sub">Combine the workflows to get a full GitFlow-aware pipeline. Both patterns share the same detect-version → CI → auto-tag foundation.</p>
+
+      <div class="flow-group">
+        <div class="flow-group-label">Python Library Pipeline</div>
+        <div class="flow-wrap">
+          <div class="flow">
+            <div class="flow-node">
+              <div class="flow-box muted">push / PR</div>
+              <div class="flow-sub">all branches</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box">detect-version</div>
+              <div class="flow-sub">all branches</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box highlight">ci-python</div>
+              <div class="flow-sub">lint→test→wheel</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box">auto-tag</div>
+              <div class="flow-sub">main only</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box">release-gh</div>
+              <div class="flow-sub">attach wheel</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box highlight">publish-pypi</div>
+              <div class="flow-sub">OIDC, no rebuild</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">Docker Service Pipeline</div>
+        <div class="flow-wrap">
+          <div class="flow">
+            <div class="flow-node">
+              <div class="flow-box muted">push / PR</div>
+              <div class="flow-sub">all branches</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box">detect-version</div>
+              <div class="flow-sub">all branches</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box highlight">ci-docker</div>
+              <div class="flow-sub">build + push on main</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box">auto-tag</div>
+              <div class="flow-sub">main only</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box highlight">docker-retag</div>
+              <div class="flow-sub">no rebuild</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <div class="flow-box">release-gh</div>
+              <div class="flow-sub">main only</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1.5rem;">
+        <a href="guides/python-library" class="btn btn-secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Full Python Library Guide
+        </a>
+        <a href="guides/docker-service" class="btn btn-secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Full Docker Service Guide
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Docs -->
+  <section id="docs">
+    <div class="container">
+      <p class="section-label">Documentation</p>
+      <h2 class="section-title">Reference for every workflow and action</h2>
+      <p class="section-sub">Every input, output, secret, and usage example — one page per workflow.</p>
+
+      <div class="docs-grid">
+        <a class="doc-link" href="getting-started">
+          <div class="doc-icon">🚀</div>
+          <div>
+            <div class="doc-title">Getting Started</div>
+            <div class="doc-desc">How to call workflows and actions</div>
+          </div>
+        </a>
+        <a class="doc-link" href="versioning">
+          <div class="doc-icon">🔖</div>
+          <div>
+            <div class="doc-title">Versioning</div>
+            <div class="doc-desc">@main vs pinned refs, breaking changes</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/detect-version">
+          <div class="doc-icon">🏷️</div>
+          <div>
+            <div class="doc-title">Detect Version</div>
+            <div class="doc-desc">Semver from branch + git tags</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/ci-python">
+          <div class="doc-icon">🐍</div>
+          <div>
+            <div class="doc-title">CI — Python</div>
+            <div class="doc-desc">Lint + test + wheel build</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/ci-docker">
+          <div class="doc-icon">🐳</div>
+          <div>
+            <div class="doc-title">CI — Docker</div>
+            <div class="doc-desc">Multi-repo build + optional push</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/auto-tag">
+          <div class="doc-icon">⚡</div>
+          <div>
+            <div class="doc-title">Auto-tag</div>
+            <div class="doc-desc">Patch bump on main</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/docker-retag">
+          <div class="doc-icon">📦</div>
+          <div>
+            <div class="doc-title">Docker Retag</div>
+            <div class="doc-desc">Promote without rebuilding</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/publish-pypi">
+          <div class="doc-icon">📤</div>
+          <div>
+            <div class="doc-title">Publish PyPI</div>
+            <div class="doc-desc">OIDC Trusted Publishing</div>
+          </div>
+        </a>
+        <a class="doc-link" href="workflows/release-gh">
+          <div class="doc-icon">🎉</div>
+          <div>
+            <div class="doc-title">GitHub Release</div>
+            <div class="doc-desc">Create release with assets</div>
+          </div>
+        </a>
+        <a class="doc-link" href="actions/setup-python-env">
+          <div class="doc-icon">🔧</div>
+          <div>
+            <div class="doc-title">Setup Python Env</div>
+            <div class="doc-desc">Composite action</div>
+          </div>
+        </a>
+        <a class="doc-link" href="actions/detect-release-type">
+          <div class="doc-icon">🔍</div>
+          <div>
+            <div class="doc-title">Detect Release Type</div>
+            <div class="doc-desc">Stable vs pre-release</div>
+          </div>
+        </a>
+        <a class="doc-link" href="guides/python-library">
+          <div class="doc-icon">📚</div>
+          <div>
+            <div class="doc-title">Python Library Guide</div>
+            <div class="doc-desc">Full ci.yml + publish.yml</div>
+          </div>
+        </a>
+        <a class="doc-link" href="guides/docker-service">
+          <div class="doc-icon">🏗️</div>
+          <div>
+            <div class="doc-title">Docker Service Guide</div>
+            <div class="doc-desc">Full on-push.yml</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>
+    &copy; <span id="yr"></span>
+    <a href="https://github.com/ITlusions" target="_blank" rel="noopener">ITLusions</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ITlusions/ITL.Github" target="_blank" rel="noopener">ITL.Github on GitHub</a>
+    &nbsp;·&nbsp;
+    MIT License
+  </p>
+</footer>
+
+<script>
+  document.getElementById("yr").textContent = new Date().getFullYear();
+
+  const navToggle = document.getElementById("nav-toggle");
+  const navLinks  = document.getElementById("nav-links");
+  navToggle.addEventListener("click", () => {
+    const open = navLinks.classList.toggle("open");
+    navToggle.classList.toggle("open", open);
+    navToggle.setAttribute("aria-expanded", open);
+  });
+  navLinks.querySelectorAll("a").forEach(a => {
+    a.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      navToggle.classList.remove("open");
+      navToggle.setAttribute("aria-expanded", false);
+    });
+  });
+</script>
+</body>
+</html>
