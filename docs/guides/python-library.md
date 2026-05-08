@@ -171,3 +171,7 @@ jobs:
 - [ ] Configure Trusted Publisher on TestPyPI: same, env=`staging`
 - [ ] Create GitHub Environments `production` and `staging` in repo settings
 - [ ] (Optional) Add approval gate to `production` environment
+
+## Real-world example
+
+See [ITL.BrainCell](braincell) for the production implementation of this pipeline, including annotated `ci.yml` and `publish.yml`, integration test exclusion, OIDC Trusted Publisher setup, and the no-rebuild contract explained in detail.
