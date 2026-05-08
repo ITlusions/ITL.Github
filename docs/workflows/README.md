@@ -21,13 +21,16 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 ## Typical Job Order
 
 For a Python library:
-```
-detect-version → ci-python → auto-tag → release-gh
-                                              ↓ (release: published)
-                                         publish-pypi
+
+```mermaid
+flowchart LR
+    A[detect-version] --> B[ci-python] --> C[auto-tag] --> D[release-gh]
+    D -->|release: published| E[publish-pypi]
 ```
 
 For a Docker service:
-```
-detect-version → ci-docker (build+push) → auto-tag → docker-retag → release-gh
+
+```mermaid
+flowchart LR
+    A[detect-version] --> B[ci-docker\nbuild + push] --> C[auto-tag] --> D[docker-retag] --> E[release-gh]
 ```

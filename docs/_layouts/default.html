@@ -387,5 +387,26 @@
     });
   }
 </script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "dark",
+    themeVariables: {
+      background: "#161b22",
+      primaryColor: "#1f6feb",
+      primaryTextColor: "#e6edf3",
+      primaryBorderColor: "#30363d",
+      lineColor: "#8b949e",
+      secondaryColor: "#21262d",
+      tertiaryColor: "#0d1117",
+      edgeLabelBackground: "#161b22",
+      clusterBkg: "#21262d",
+      clusterBorder: "#30363d",
+      titleColor: "#58a6ff",
+      nodeTextColor: "#e6edf3"
+    }
+  });
+</script>
 </body>
 </html>

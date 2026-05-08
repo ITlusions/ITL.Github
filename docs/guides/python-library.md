@@ -4,25 +4,18 @@ End-to-end CI/CD setup for a Python package published to PyPI.
 
 ## Pipeline Overview
 
-```
-push / PR
-    │
-    ├── detect-version          (all branches)
-    │
-    ├── ci                      (all branches)
-    │       lint → test → build wheel → upload artifact
-    │
-    ├── auto-tag                (main + release/** only)
-    │       bump patch → push vX.Y.Z tag
-    │
-    └── create-release          (main + release/** only)
-            create GitHub Release → attach wheel
-                        │
-                        └── release: published event
-                                    │
-                              publish.yml
-                                    │
-                              publish to PyPI / TestPyPI
+```mermaid
+flowchart TD
+    A([push / PR]) --> B[detect-version\nall branches]
+    A --> C[ci\nall branches]
+    C --> C1[lint · test · build wheel · upload artifact]
+    B --> D{ }
+    C1 --> D
+    D -->|main or release/**| E[auto-tag\nbump patch → vX.Y.Z]
+    E --> F[create-release\nGitHub Release + wheel]
+    F -->|release: published| G([publish.yml])
+    G --> H[PyPI / TestPyPI]
+    D -->|other branches| Z([done])
 ```
 
 ## File Structure

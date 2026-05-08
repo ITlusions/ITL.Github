@@ -4,24 +4,18 @@ End-to-end CI/CD setup for a Docker-based service published to a container regis
 
 ## Pipeline Overview
 
-```
-push / PR
-    │
-    ├── detect-version          (all branches)
-    │
-    ├── ci                      (all branches)
-    │       checkout repo + dependency
-    │       lint → test → docker build
-    │       push image on develop + main only
-    │
-    ├── auto-tag                (main only)
-    │       bump patch → push vX.Y.Z tag
-    │
-    ├── docker                  (main only)
-    │       retag CI image → vX.Y.Z (no rebuild)
-    │
-    └── release                 (main only)
-            create GitHub Release
+```mermaid
+flowchart TD
+    A([push / PR]) --> B[detect-version\nall branches]
+    A --> C[ci\nall branches]
+    C --> C1[checkout · lint · test · docker build]
+    C1 -->|develop or main| C2[push image to GHCR]
+    B --> D{ }
+    C2 --> D
+    D -->|main only| E[auto-tag\nbump patch → vX.Y.Z]
+    E --> F[docker-retag\nretag CI image → vX.Y.Z, no rebuild]
+    F --> G[release\nGitHub Release]
+    D -->|other branches| Z([done])
 ```
 
 ## Key Design Principle: Build Once, Promote by Retag
