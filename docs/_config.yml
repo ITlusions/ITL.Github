@@ -13,6 +13,10 @@ kramdown:
     block:
       line_numbers: false
 
+# Force include static files and component directory
+include:
+  - _includes
+
 # Exclude files that shouldn't be built as pages
 exclude:
   - "*.py"
