@@ -11,7 +11,7 @@ name: GitHub Release (reusable)
 #         tag: "v1.2.3"
 #         artifact-name: "myproject-wheel"
 #       secrets:
-#         gh-pat: ${{ secrets.GH_PAT }}
+#         gh-pat: ${{ secrets.GH_PAT }}   # optional; required for release:published to fire
 # ---------------------------------------------------------------------------
 on:
   workflow_call:
@@ -43,7 +43,7 @@ on:
 
     secrets:
       gh-pat:
-        description: "PAT for creating the release (required so release:published fires downstream)"
+        description: "PAT for creating the release — required for release:published event to fire downstream. Falls back to GITHUB_TOKEN (which does NOT fire the event)."
         required: false
 
     outputs:
