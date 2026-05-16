@@ -10,6 +10,8 @@ name: GitHub Release (reusable)
 #       with:
 #         tag: "v1.2.3"
 #         artifact-name: "myproject-wheel"
+#       secrets:
+#         gh-pat: ${{ secrets.GH_PAT }}
 # ---------------------------------------------------------------------------
 on:
   workflow_call:
@@ -39,6 +41,11 @@ on:
         type: string
         default: ""
 
+    secrets:
+      gh-pat:
+        description: "PAT for creating the release (required so release:published fires downstream)"
+        required: false
+
     outputs:
       release-url:
         description: "URL of the created GitHub Release"
@@ -62,7 +69,8 @@ jobs:
           TAG="${{ inputs.tag }}"
           VERSION="${TAG#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          if echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.'; then
+          if echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.';
+          then
             echo "prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "prerelease=false" >> $GITHUB_OUTPUT
@@ -89,4 +97,4 @@ jobs:
           body: ${{ inputs.body }}
           files: ${{ inputs.artifact-name != '' && 'dist/*' || '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
