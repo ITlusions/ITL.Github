@@ -59,11 +59,8 @@ jobs:
       - name: Lint composite actions with actionlint
         run: |
           # actionlint targets workflow files only — not composite action.yml files.
-          # Lint the workflows in this repo instead.
-          find .github/workflows -name "*.yml" | while read f; do
-            echo "→ $f"
-            actionlint "$f"
-          done
+          # -shellcheck="" disables the embedded shellcheck runner (separate concern).
+          actionlint -shellcheck="" .github/workflows/*.yml
 
   # ---------------------------------------------------------------------------
   # 2. Auto-tag (patch bump) — main only
