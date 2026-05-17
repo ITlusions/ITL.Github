@@ -1,0 +1,101 @@
+name: CI
+
+# ---------------------------------------------------------------------------
+# CI pipeline for ITL.Github itself.
+#
+# Validates all composite actions (yamllint + actionlint) and auto-tags the
+# repo on every merge to main so consumers can pin to a specific version:
+#
+#   uses: ITLusions/ITL.Github/actions/fire-release-dispatch@v1.2.3
+#
+# Branch strategy:
+#   feature/**  → validate only
+#   main        → validate + auto-tag (patch bump)
+# ---------------------------------------------------------------------------
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # 1. Validate all action.yml files (YAML syntax + actionlint)
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate actions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint all action.yml files
+        run: |
+          find actions -name "action.yml" | while read f; do
+            echo "→ $f"
+            yamllint -d "{extends: default, rules: {line-length: {max: 160}}}" "$f"
+          done
+
+      - name: Install actionlint
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv actionlint /usr/local/bin/
+
+      - name: Lint composite actions with actionlint
+        run: |
+          find actions -name "action.yml" | while read f; do
+            echo "→ $f"
+            actionlint "$f"
+          done
+
+  # ---------------------------------------------------------------------------
+  # 2. Auto-tag (patch bump) — main only
+  #    Enables consumers to pin: @v1.2.3 or @v1
+  # ---------------------------------------------------------------------------
+  auto-tag:
+    name: Auto-tag
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ITLusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+    with:
+      commit-sha: ${{ github.sha }}
+
+  # ---------------------------------------------------------------------------
+  # 3. Update major floating tag — main only (e.g. v1 → latest v1.x.x)
+  #    Allows consumers to pin to a major version: @v1
+  # ---------------------------------------------------------------------------
+  float-major-tag:
+    name: Float major tag
+    needs: auto-tag
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move major floating tag
+        run: |
+          TAG="${{ needs.auto-tag.outputs.tag }}"
+          MAJOR="v$(echo "${TAG#v}" | cut -d. -f1)"
+          echo "Floating $MAJOR → $TAG"
+          git tag -f "$MAJOR"
+          git push origin "$MAJOR" --force

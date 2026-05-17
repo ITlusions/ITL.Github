@@ -1,0 +1,44 @@
+name: Fire Release Dispatch
+description: >
+  Fires a repository_dispatch event of type 'release-ready' using GITHUB_TOKEN.
+  Use this after creating a GitHub Release to trigger a separate publish workflow
+  without requiring a PAT.
+
+inputs:
+  token:
+    description: "GitHub token (GITHUB_TOKEN is sufficient)"
+    required: true
+  run-id:
+    description: "Workflow run ID to pass in the payload (for artifact download)"
+    required: true
+  prerelease:
+    description: "'true' if this is a pre-release, otherwise 'false'"
+    required: true
+  version:
+    description: "Semver version string, e.g. 1.2.3 or 1.2.3-rc.1"
+    required: false
+    default: ""
+  tag:
+    description: "Git tag, e.g. v1.2.3"
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Fire repository_dispatch release-ready
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          await github.rest.repos.createDispatchEvent({
+            owner: context.repo.owner,
+            repo:  context.repo.repo,
+            event_type: 'release-ready',
+            client_payload: {
+              run_id:    '${{ inputs.run-id }}',
+              prerelease: '${{ inputs.prerelease }}',
+              version:   '${{ inputs.version }}',
+              tag:       '${{ inputs.tag }}'
+            }
+          });
