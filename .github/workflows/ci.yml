@@ -58,7 +58,9 @@ jobs:
 
       - name: Lint composite actions with actionlint
         run: |
-          find actions -name "action.yml" | while read f; do
+          # actionlint targets workflow files only — not composite action.yml files.
+          # Lint the workflows in this repo instead.
+          find .github/workflows -name "*.yml" | while read f; do
             echo "→ $f"
             actionlint "$f"
           done
