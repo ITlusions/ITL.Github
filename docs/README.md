@@ -25,7 +25,7 @@ uses: ITlusions/ITL.Github/.github/workflows/<name>.yml@main
 | File | Purpose |
 |---|---|
 | **NEW:** [`_reusable-python-ci.yml`](workflows/reusable-python-ci.md) | Test + lint + build Python wheels (setuptools-scm) |
-| **NEW:** [`_reusable-python-publish.yml`](workflows/reusable-python-publish.md) | Smart PyPI/TestPyPI publishing (branch-aware + OIDC) |
+| **NEW:** [`_reusable-python-publish.yml`](workflows/reusable-python-publish.md) | Smart PyPI/TestPyPI publishing (branch-aware + OIDC + SBOM + attestation) |
 | [`_reusable-detect-version.yml`](workflows/detect-version.md) | Determine semver version from branch/tags |
 | [`_reusable-ci-python.yml`](workflows/ci-python.md) | Lint + test + wheel build (Python) |
 | [`_reusable-ci-docker.yml`](workflows/ci-docker.md) | Lint + test + Docker build/push |
@@ -42,5 +42,7 @@ uses: ITlusions/ITL.Github/actions/<name>@main
 
 | Directory | Purpose |
 |---|---|
+| [`python-publish`](actions/python-publish.md) | Build, SBOM, attest, publish Python packages (OIDC-compatible) |
+| [`dependabot-auto-merge`](actions/dependabot-auto-merge.md) | Auto-merge Dependabot PRs by update type |
 | [`setup-python-env`](actions/setup-python-env.md) | Python setup + pip install |
 | [`detect-release-type`](actions/detect-release-type.md) | Stable vs pre-release detection |

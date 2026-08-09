@@ -6,9 +6,16 @@
 
 ## Overview
 
-Intelligent PyPI publishing with automatic branch-based targeting. Publishes to:
+Intelligent PyPI publishing with automatic branch-based targeting, supply chain security (SBOM + attestation), and GitHub Release management. Publishes to:
 - **PyPI (stable)** for production releases
 - **TestPyPI (prerelease)** for testing and development
+
+Features:
+- 📦 **Build & Package** — Python wheels + source distributions
+- 📋 **SBOM** — CycloneDX Software Bill of Materials (all repos)
+- 🔐 **Attestation** — Sigstore build provenance (public repos)
+- 📤 **Release Upload** — Attach artifacts to GitHub Release
+- 🔀 **Smart Routing** — Automatic branch-based targeting
 
 Supports automatic detection or manual override via workflow_dispatch.
 
@@ -169,25 +176,88 @@ Manual dispatch?
 **Depends on**: `determine_target` outputs  
 **Condition**: Only runs if `publish_to != 'none'`
 
-Builds and publishes package:
+Builds, secures, and publishes package:
 
 1. **Checkout code** (fetch full history for git tags)
 2. **Set up Python** (specified version)
 3. **Build distribution**:
    - Install build tools: `pip install build`
    - Build wheel: `python -m build`
-   - Creates `dist/` with `.whl` file
-4. **Publish to TestPyPI** (if `publish_to == testpypi`):
+   - Creates `dist/` with `.whl` and `.tar.gz` files
+4. **Generate SBOM (CycloneDX)**:
+   - Uses `anchore/sbom-action@v0`
+   - Scans dependencies and generates `sbom.cyclonedx.json`
+   - Works on **all repos** (public & private)
+   - File format: CycloneDX (OWASP standard)
+5. **Attest build provenance**:
+   - Uses `actions/attest-build-provenance@v1`
+   - Generates Sigstore-signed attestations
+   - ✅ Works on **public repos** (free, auto-Sigstore)
+   - ❌ Private repos need GitHub Enterprise Cloud
+   - Binds artifact digest to SLSA provenance
+6. **Publish to TestPyPI** (if `publish_to == testpypi`):
    - Uses `pypa/gh-action-pypi-publish@release/v1`
    - Publishes to `https://test.pypi.org/legacy/`
    - `continue-on-error: true` (doesn't fail main workflow)
-5. **Publish to PyPI** (if `publish_to == pypi`):
+7. **Publish to PyPI** (if `publish_to == pypi`):
    - Uses `pypa/gh-action-pypi-publish@release/v1`
    - Publishes to `https://upload.pypi.org/legacy/`
    - `continue-on-error: true` (doesn't fail main workflow)
-6. **Print result** (logs publish target and reason)
+8. **Upload SBOM artifact**:
+   - Stores `sbom.cyclonedx.json` to GitHub Actions artifacts
+   - 90-day retention
+   - Downloadable via `gh run download`
+9. **Upload to GitHub Release** (only on GitHub Release events):
+   - Attaches all distributions + SBOM to GitHub Release
+   - Files: `*.whl`, `*.tar.gz`, `sbom.cyclonedx.json`
+10. **Print result** (logs publish target and reason)
 
-**Output**: Package available on PyPI or TestPyPI
+**Output**: 
+- Package on PyPI/TestPyPI
+- Attestations in GitHub (verify: `gh attestation verify`)
+- SBOM stored in artifacts
+- Release assets attached to GitHub Release
+
+## Supply Chain Security
+
+### SBOM (Software Bill of Materials)
+
+**What it does**: Lists all dependencies, versions, and licenses in CycloneDX format.
+
+**Available on**: ✅ All repos (public & private)
+
+**Usage**:
+```bash
+# Download SBOM from workflow run
+gh run download <run-id> --name sbom
+cat sbom.cyclonedx.json | jq '.components[] | {name, version, licenses}'
+
+# Analyze for known vulnerabilities
+# (Use with: Dependency-Track, Grype, Trivy, etc.)
+```
+
+### Build Provenance Attestation
+
+**What it does**: Creates signed proof that wheels were built by your CI workflow (SLSA L2+).
+
+**Available on**: ✅ Public repos | ❌ Private repos (needs GitHub Enterprise)
+
+**Usage**:
+```bash
+# Verify attestation
+gh attestation verify dist/braincell-*.whl
+
+# Output shows:
+# - Builder: github.com/ITlusions/ITL.Braincell.SDK/.github/workflows/publish.yml@v2.0.0
+# - Commit SHA
+# - Provenance digest
+```
+
+**Why it matters**:
+- 🔐 Proves artifact integrity (not tampered)
+- ✅ SLSA compliance (Software Supply Chain Levels for Secure Software)
+- 🔍 Verifiable by downstream consumers
+- 📋 Audit trail for compliance requirements
 
 ## Authentication: OIDC Trusted Publisher
 

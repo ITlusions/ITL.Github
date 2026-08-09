@@ -13,7 +13,9 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 | Workflow | File | Purpose |
 |---|---|---|
 | [Python CI](reusable-python-ci.md) | `_reusable-python-ci.yml` | Test + lint + build Python wheels (setuptools-scm version detection) |
-| [Python Publish](reusable-python-publish.md) | `_reusable-python-publish.yml` | Smart PyPI/TestPyPI publishing (branch-aware + OIDC auth) |
+| [Python Publish](reusable-python-publish.md) | `_reusable-python-publish.yml` | Smart PyPI/TestPyPI publishing (branch-aware + OIDC auth + SBOM + attestation) |
+
+**Alternative**: Use [`actions/python-publish`](../actions/python-publish.md) composite action in your own workflow for full Trusted Publisher support.
 
 ### Legacy Templates
 
