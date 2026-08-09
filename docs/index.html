@@ -299,6 +299,9 @@
     .workflow-card:nth-child(5)::before { background: #6e40c9; }
     .workflow-card:nth-child(6)::before { background: #f78166; }
     .workflow-card:nth-child(7)::before { background: #3fb950; }
+    .workflow-card:nth-child(8)::before { background: #9e6a03; }
+    .workflow-card:nth-child(9)::before { background: #d29922; }
+    .workflow-card:nth-child(10)::before { background: #f78166; }
 
     .wf-filename {
       font-size: 0.72rem;
@@ -498,7 +501,7 @@
     </a>
   </div>
   <div class="badges">
-    <span class="badge-pill"><span class="dot" style="background:var(--success)"></span>7 reusable workflows</span>
+    <span class="badge-pill"><span class="dot" style="background:var(--success)"></span>10 reusable workflows</span>
     <span class="badge-pill"><span class="dot" style="background:#1f6feb"></span>4 composite actions</span>
     <span class="badge-pill"><span class="dot" style="background:#9e6a03"></span>OIDC Trusted Publishing</span>
     <span class="badge-pill"><span class="dot" style="background:#6e40c9"></span>Build-once promotion</span>
@@ -512,10 +515,11 @@
   <section id="workflows">
     <div class="container">
       <p class="section-label">Reusable Workflows</p>
-      <h2 class="section-title">7 workflows, one consistent pipeline</h2>
+      <h2 class="section-title">10 workflows: new generation + legacy</h2>
       <p class="section-sub">
         Call any workflow from your repo with
         <code>uses: ITlusions/ITL.Github/.github/workflows/&lt;name&gt;.yml@main</code>
+        — <strong>new generation</strong> workflows (<code>_reusable-python-ci.yml</code>, <code>_reusable-python-publish.yml</code>) are recommended for Python projects; legacy versions also available.
       </p>
 
       <div class="workflows-grid">
@@ -532,10 +536,34 @@
           </div>
         </a>
 
+        <a class="workflow-card" href="workflows/reusable-python-ci">
+          <div class="wf-filename">_reusable-python-ci.yml</div>
+          <div class="wf-title">Python CI <span style="font-size:0.7rem;background:var(--success);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">NEW</span></div>
+          <div class="wf-desc"><strong>Recommended.</strong> Lint (ruff) → test (pytest) → build wheel with setuptools-scm version detection. Auto-detects version from git tags. Simpler than legacy CI — Python.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">ruff</span>
+            <span class="wf-tag">pytest</span>
+            <span class="wf-tag">setuptools-scm</span>
+            <span class="wf-tag">wheel</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/reusable-python-publish">
+          <div class="wf-filename">_reusable-python-publish.yml</div>
+          <div class="wf-title">Python Publish <span style="font-size:0.7rem;background:var(--success);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">NEW</span></div>
+          <div class="wf-desc"><strong>Recommended.</strong> Branch-aware publishing with SBOM (CycloneDX), build provenance attestation (Sigstore), and release artifact upload. Publishes to PyPI/TestPyPI via OIDC. Full supply chain security.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">OIDC</span>
+            <span class="wf-tag">SBOM</span>
+            <span class="wf-tag">attestation</span>
+            <span class="wf-tag">PyPI</span>
+          </div>
+        </a>
+
         <a class="workflow-card" href="workflows/ci-python">
           <div class="wf-filename">_reusable-ci-python.yml</div>
-          <div class="wf-title">CI — Python</div>
-          <div class="wf-desc">Lint (ruff) → test (pytest with PostgreSQL service) → build wheel. Injects the resolved version into <code>pyproject.toml</code> before building. Uploads the wheel as a GitHub artifact.</div>
+          <div class="wf-title">CI — Python <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span></div>
+          <div class="wf-desc">Lint (ruff) → test (pytest with PostgreSQL service) → build wheel. Requires manual version injection into <code>pyproject.toml</code>. Use <code>_reusable-python-ci.yml</code> instead for new projects.</div>
           <div class="wf-tags">
             <span class="wf-tag">ruff</span>
             <span class="wf-tag">pytest</span>
@@ -580,13 +608,24 @@
 
         <a class="workflow-card" href="workflows/publish-pypi">
           <div class="wf-filename">_reusable-publish-pypi.yml</div>
-          <div class="wf-title">Publish PyPI</div>
-          <div class="wf-desc">Downloads the wheel built by CI and publishes it to PyPI or TestPyPI via OIDC Trusted Publishing — no API tokens, no secrets. Routes stable tags to PyPI, pre-release tags to TestPyPI.</div>
+          <div class="wf-title">Publish PyPI <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span></div>
+          <div class="wf-desc">Downloads a pre-built wheel and publishes to PyPI/TestPyPI via OIDC Trusted Publishing. Basic publishing without supply chain security. Use <code>_reusable-python-publish.yml</code> instead for new projects (includes SBOM + attestation).</div>
           <div class="wf-tags">
             <span class="wf-tag">OIDC</span>
             <span class="wf-tag">twine</span>
             <span class="wf-tag">PyPI</span>
             <span class="wf-tag">TestPyPI</span>
+          </div>
+        </a>
+
+        <a class="workflow-card" href="workflows/docker-build">
+          <div class="wf-filename">_reusable-docker-build.yml</div>
+          <div class="wf-title">Docker Build</div>
+          <div class="wf-desc">Builds a Docker image and optionally pushes to registry. Supports multi-platform builds via <code>docker buildx</code>. Suitable as an alternative to or alongside <code>_reusable-ci-docker.yml</code>.</div>
+          <div class="wf-tags">
+            <span class="wf-tag">docker buildx</span>
+            <span class="wf-tag">multi-platform</span>
+            <span class="wf-tag">registry push</span>
           </div>
         </a>
 
