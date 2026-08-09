@@ -29,7 +29,7 @@ jobs:
     
     steps:
     - name: Check template version status
-      uses: ITlusions/ITL.Github/actions/check-template-version@v0.2.0
+      uses: ITlusions/ITL.Github/actions/check-template-version@v0.2.4
     
     - name: Determine publish target
       id: target
