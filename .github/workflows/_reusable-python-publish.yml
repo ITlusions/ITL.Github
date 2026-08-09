@@ -29,30 +29,7 @@ jobs:
     
     steps:
     - name: Check template version status
-      run: |
-        # Extract template version from workflow_ref (e.g., "...@v0.1.2")
-        TEMPLATE_VERSION=$(echo "${{ github.workflow_ref }}" | grep -oP 'v\d+\.\d+\.\d+' | tail -1 || echo "unknown")
-        
-        # Fetch manifest from ITL.Github
-        curl -s -L https://raw.githubusercontent.com/ITlusions/ITL.Github/main/.github/VERSION_MANIFEST.json -o /tmp/manifest.json || {
-          echo "::debug::Could not fetch version manifest"
-          exit 0
-        }
-        
-        # Check if version is deprecated
-        DEPRECATED=$(jq -r ".deprecated[] | select(.version==\"$TEMPLATE_VERSION\") | .reason" /tmp/manifest.json 2>/dev/null)
-        if [[ ! -z "$DEPRECATED" ]]; then
-          echo "::warning::Template version $TEMPLATE_VERSION is deprecated: $DEPRECATED"
-          echo "::notice::Update to latest version by changing @$TEMPLATE_VERSION to @$(jq -r '.latest' /tmp/manifest.json)"
-        fi
-        
-        # Check if newer version available
-        LATEST=$(jq -r '.latest' /tmp/manifest.json 2>/dev/null)
-        if [[ ! -z "$LATEST" && "$TEMPLATE_VERSION" != "$LATEST" && "$TEMPLATE_VERSION" != "unknown" ]]; then
-          if ! echo "$TEMPLATE_VERSION" | grep -q "$(echo $LATEST | sed 's/v//')"; then
-            echo "::notice::A newer template version is available: $LATEST (currently using $TEMPLATE_VERSION)"
-          fi
-        fi
+      uses: ITlusions/ITL.Github/actions/check-template-version@v0.2.0
     
     - name: Determine publish target
       id: target
