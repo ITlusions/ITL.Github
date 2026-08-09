@@ -106,6 +106,13 @@ jobs:
         python -m build
         ls -lah dist/
     
+    - name: Attest build provenance
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-path: |
+          dist/*.whl
+          dist/*.tar.gz
+    
     - name: Publish to TestPyPI (prerelease)
       if: needs.determine_target.outputs.publish_to == 'testpypi'
       uses: pypa/gh-action-pypi-publish@release/v1
