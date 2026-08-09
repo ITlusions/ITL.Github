@@ -112,14 +112,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.0
         with:
           ref: ${{ inputs.ref }}
           path: ${{ inputs.checkout-path }}
 
       - name: Checkout ${{ inputs.dependency-repo }}
         if: inputs.dependency-repo != ''
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.0
         with:
           repository: ${{ inputs.dependency-repo }}
           token: ${{ secrets.registry-password || secrets.GITHUB_TOKEN }}

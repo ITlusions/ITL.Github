@@ -108,7 +108,7 @@ jobs:
       # --- Fallback: build wheel if artifact is not available ---
       - name: Checkout (fallback build)
         if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.0
 
       - name: Build wheel (fallback)
         if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
