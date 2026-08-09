@@ -1,0 +1,86 @@
+---
+name: Dependabot Auto-Merge
+description: Enable auto-merge for Dependabot PRs based on update type (patch, minor, major)
+author: ITLusions
+
+inputs:
+  pr_number:
+    description: Pull request number
+    required: true
+  pr_title:
+    description: Pull request title
+    required: true
+  merge_strategy:
+    description: Merge strategy (squash, merge, rebase)
+    required: false
+    default: squash
+  auto_merge_types:
+    description: Comma-separated update types to auto-merge (patch, minor, major)
+    required: false
+    default: patch
+
+outputs:
+  auto_merged:
+    description: Whether auto-merge was enabled
+    value: ${{ steps.merge.outputs.auto_merged }}
+  merge_reason:
+    description: Reason for merge decision
+    value: ${{ steps.merge.outputs.reason }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check and enable auto-merge
+      id: merge
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        PR_NUMBER="${{ inputs.pr_number }}"
+        PR_TITLE="${{ inputs.pr_title }}"
+        MERGE_STRATEGY="${{ inputs.merge_strategy }}"
+        AUTO_MERGE_TYPES="${{ inputs.auto_merge_types }}"
+
+        # Normalize update type detection
+        IS_PATCH=false
+        IS_MINOR=false
+        IS_MAJOR=false
+
+        if [[ "$PR_TITLE" =~ (patch|patch\ update) ]]; then
+          IS_PATCH=true
+        fi
+        if [[ "$PR_TITLE" =~ (minor|minor\ update) ]]; then
+          IS_MINOR=true
+        fi
+        if [[ "$PR_TITLE" =~ (major|major\ update) ]]; then
+          IS_MAJOR=true
+        fi
+
+        # Check if this update type should be auto-merged
+        SHOULD_AUTO_MERGE=false
+        REASON=""
+
+        if [[ "$IS_PATCH" == "true" ]] && [[ "$AUTO_MERGE_TYPES" =~ patch ]]; then
+          SHOULD_AUTO_MERGE=true
+          REASON="patch update"
+        elif [[ "$IS_MINOR" == "true" ]] && [[ "$AUTO_MERGE_TYPES" =~ minor ]]; then
+          SHOULD_AUTO_MERGE=true
+          REASON="minor update"
+        elif [[ "$IS_MAJOR" == "true" ]] && [[ "$AUTO_MERGE_TYPES" =~ major ]]; then
+          SHOULD_AUTO_MERGE=true
+          REASON="major update"
+        else
+          REASON="update type not in auto-merge list ($AUTO_MERGE_TYPES)"
+        fi
+
+        # Set outputs
+        echo "auto_merged=$SHOULD_AUTO_MERGE" >> $GITHUB_OUTPUT
+        echo "reason=$REASON" >> $GITHUB_OUTPUT
+
+        if [[ "$SHOULD_AUTO_MERGE" == "true" ]]; then
+          echo "✅ Auto-merging $REASON: $PR_TITLE"
+          gh pr merge --auto --$MERGE_STRATEGY "$PR_NUMBER" || echo "⚠️ Auto-merge may already be enabled or CI is not complete"
+        else
+          echo "⏳ Manual review required: $REASON"
+        fi
