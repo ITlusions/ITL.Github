@@ -499,7 +499,7 @@
   </div>
   <div class="badges">
     <span class="badge-pill"><span class="dot" style="background:var(--success)"></span>7 reusable workflows</span>
-    <span class="badge-pill"><span class="dot" style="background:#1f6feb"></span>2 composite actions</span>
+    <span class="badge-pill"><span class="dot" style="background:#1f6feb"></span>4 composite actions</span>
     <span class="badge-pill"><span class="dot" style="background:#9e6a03"></span>OIDC Trusted Publishing</span>
     <span class="badge-pill"><span class="dot" style="background:#6e40c9"></span>Build-once promotion</span>
     <span class="badge-pill"><span class="dot" style="background:#f78166"></span>Semver auto-tag</span>
@@ -633,6 +633,24 @@
           <div class="action-title">Detect Release Type</div>
           <div class="action-desc">Inspects a semver version string and outputs <code>prerelease=true/false</code> and <code>release-type=stable/pre-release</code>. Used internally by the publish workflow.</div>
           <div class="action-usage">uses: ITlusions/ITL.Github/actions/detect-release-type@main</div>
+        </a>
+
+        <a class="action-card" href="actions/python-publish">
+          <div class="action-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          </div>
+          <div class="action-title">Python Publish</div>
+          <div class="action-desc">Complete build-to-publish pipeline: build wheel, generate SBOM (CycloneDX), create build provenance attestation (Sigstore), publish to PyPI/TestPyPI via OIDC, and optionally upload artifacts to GitHub Release.</div>
+          <div class="action-usage">uses: ITlusions/ITL.Github/actions/python-publish@main</div>
+        </a>
+
+        <a class="action-card" href="actions/dependabot-auto-merge">
+          <div class="action-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <div class="action-title">Dependabot Auto-Merge</div>
+          <div class="action-desc">Automatically merges Dependabot pull requests based on update type (patch, minor, major). Configurable merge strategy (squash, merge, rebase) and filtering by update types.</div>
+          <div class="action-usage">uses: ITlusions/ITL.Github/actions/dependabot-auto-merge@main</div>
         </a>
 
       </div>
@@ -816,6 +834,20 @@
           <div>
             <div class="doc-title">Detect Release Type</div>
             <div class="doc-desc">Stable vs pre-release</div>
+          </div>
+        </a>
+        <a class="doc-link" href="actions/python-publish">
+          <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
+          <div>
+            <div class="doc-title">Python Publish</div>
+            <div class="doc-desc">Build + SBOM + attest + publish</div>
+          </div>
+        </a>
+        <a class="doc-link" href="actions/dependabot-auto-merge">
+          <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+          <div>
+            <div class="doc-title">Dependabot Auto-Merge</div>
+            <div class="doc-desc">Auto-merge Dependabot PRs</div>
           </div>
         </a>
         <a class="doc-link" href="guides/python-library">
