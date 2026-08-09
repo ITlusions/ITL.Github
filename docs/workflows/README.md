@@ -8,6 +8,15 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 
 ## Overview
 
+### New Generation (Recommended)
+
+| Workflow | File | Purpose |
+|---|---|---|
+| [Python CI](reusable-python-ci.md) | `_reusable-python-ci.yml` | Test + lint + build Python wheels (setuptools-scm version detection) |
+| [Python Publish](reusable-python-publish.md) | `_reusable-python-publish.yml` | Smart PyPI/TestPyPI publishing (branch-aware + OIDC auth) |
+
+### Legacy Templates
+
 | Workflow | File | Purpose |
 |---|---|---|
 | [Detect Version](detect-version.md) | `_reusable-detect-version.yml` | Determine a semver version from branch name and git tags |
@@ -20,6 +29,23 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 
 ## Typical Job Order
 
+### Modern Python Library (Recommended)
+
+```mermaid
+flowchart LR
+    A[Push to feature/**] --> B["CI: test + lint + build<br/>(_reusable-python-ci.yml)"] --> C["Auto-publish to TestPyPI<br/>(_reusable-python-publish.yml)"]
+    D[Push to hotfix/**] --> E["CI: test + lint + build"] --> F["Auto-publish to PyPI"]
+    G["Create GitHub Release<br/>(prerelease: false)"] --> H["Auto-publish to PyPI<br/>(_reusable-python-publish.yml)"]
+```
+
+**Key advantages:**
+- ✅ No manual version management (git tags only)
+- ✅ Automatic TestPyPI for features, PyPI for hotfixes
+- ✅ OIDC Trusted Publisher (no API tokens)
+- ✅ Branch-aware publishing
+
+### Legacy Python Library
+
 For a Python library:
 
 ```mermaid
@@ -27,6 +53,8 @@ flowchart LR
     A[detect-version] --> B[ci-python] --> C[auto-tag] --> D[release-gh]
     D -->|release: published| E[publish-pypi]
 ```
+
+### Legacy Docker Service
 
 For a Docker service:
 
