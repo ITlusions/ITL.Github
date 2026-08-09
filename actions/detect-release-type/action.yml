@@ -1,3 +1,4 @@
+---
 name: Detect Release Type
 description: >
   Detects whether a semver version is a stable release or pre-release

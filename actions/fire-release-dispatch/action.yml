@@ -1,3 +1,4 @@
+---
 name: Fire Release Dispatch
 description: >
   Fires a repository_dispatch event of type 'release-ready' using GITHUB_TOKEN.
