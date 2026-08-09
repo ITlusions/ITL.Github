@@ -352,12 +352,12 @@ To add or improve components:
 
 ## 📜 License
 
-MIT License - See [LICENSE](../LICENSE)
+MIT License - See [LICENSE in repository root](https://github.com/ITlusions/ITL.Github/blob/main/LICENSE)
 
 ---
 
 ## 🔗 Related
 
-- [Component Demo](COMPONENTS_DEMO.md) - Live examples
-- [Migration Guide](MIGRATION_GUIDE.md) - Refactoring existing docs
+- [Component Demo](../COMPONENTS_DEMO.md) - Live examples
 - [Jekyll Documentation](https://jekyllrb.com/docs/includes/)
+- [GitHub Markdown Guide](https://guides.github.com/features/mastering-markdown/)

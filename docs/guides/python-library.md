@@ -167,4 +167,4 @@ jobs:
 
 ## Real-world example
 
-See [ITL.BrainCell](braincell) for the production implementation of this pipeline, including annotated `ci.yml` and `publish.yml`, integration test exclusion, OIDC Trusted Publisher setup, and the no-rebuild contract explained in detail.
+See [ITL.BrainCell](braincell.md) for the production implementation of this pipeline, including annotated `ci.yml` and `publish.yml`, integration test exclusion, OIDC Trusted Publisher setup, and the no-rebuild contract explained in detail.

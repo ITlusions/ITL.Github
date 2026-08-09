@@ -257,9 +257,9 @@ No other secrets are required. PyPI publish uses OIDC.
 
 ## See also
 
-- [Python Library Pipeline Guide](python-library) — generic template this is based on
-- [Detect Version workflow](../workflows/detect-version)
-- [CI — Python workflow](../workflows/ci-python)
-- [Auto-tag workflow](../workflows/auto-tag)
-- [GitHub Release workflow](../workflows/release-gh)
-- [Publish PyPI workflow](../workflows/publish-pypi)
+- [Python Library Pipeline Guide](python-library.md) — generic template this is based on
+- [Detect Version workflow](../workflows/detect-version.md)
+- [CI — Python workflow](../workflows/ci-python.md)
+- [Auto-tag workflow](../workflows/auto-tag.md)
+- [GitHub Release workflow](../workflows/release-gh.md)
+- [Publish PyPI workflow](../workflows/publish-pypi.md)

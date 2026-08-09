@@ -24,6 +24,8 @@ uses: ITlusions/ITL.Github/.github/workflows/<name>.yml@main
 
 | File | Purpose |
 |---|---|
+| **NEW:** [`_reusable-python-ci.yml`](workflows/reusable-python-ci.md) | Test + lint + build Python wheels (setuptools-scm) |
+| **NEW:** [`_reusable-python-publish.yml`](workflows/reusable-python-publish.md) | Smart PyPI/TestPyPI publishing (branch-aware + OIDC) |
 | [`_reusable-detect-version.yml`](workflows/detect-version.md) | Determine semver version from branch/tags |
 | [`_reusable-ci-python.yml`](workflows/ci-python.md) | Lint + test + wheel build (Python) |
 | [`_reusable-ci-docker.yml`](workflows/ci-docker.md) | Lint + test + Docker build/push |

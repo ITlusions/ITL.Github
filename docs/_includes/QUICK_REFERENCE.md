@@ -161,8 +161,8 @@ docker compose up -d
 
 ## 🔗 Resources
 
-- [Full Documentation](README.md)
-- [Live Demo](COMPONENTS_DEMO.md)
+- [Full Documentation](../README.md)
+- [Live Demo](../COMPONENTS_DEMO.md)
 - [Integration Guide](INTEGRATION.md)
 - [ITL.Github Repository](https://github.com/ITlusions/ITL.Github)
 
