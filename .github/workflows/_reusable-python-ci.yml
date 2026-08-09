@@ -100,6 +100,7 @@ jobs:
       run: |
         LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
         BRANCH="${{ github.ref_name }}"
+        SAFE_BRANCH="${BRANCH//\//-}"
         
         if [[ "$BRANCH" == "main" ]]; then
           ARTIFACT_NAME="wheel-${LATEST_TAG}"
@@ -110,7 +111,7 @@ jobs:
         else
           COMMIT_SHA="${{ github.sha }}"
           SHORT_SHA="${COMMIT_SHA:0:7}"
-          ARTIFACT_NAME="wheel-${LATEST_TAG}-${BRANCH}-${SHORT_SHA}"
+          ARTIFACT_NAME="wheel-${LATEST_TAG}-${SAFE_BRANCH}-${SHORT_SHA}"
         fi
         
         echo "artifact_name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
