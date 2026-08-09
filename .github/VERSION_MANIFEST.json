@@ -1,0 +1,21 @@
+{
+  "latest": "v0.2.0",
+  "deprecated": [
+    {
+      "version": "v0.1.0",
+      "reason": "Initial release, use v0.1.2+ for action version fixes",
+      "end_of_life": "2026-12-31"
+    },
+    {
+      "version": "v0.1.1",
+      "reason": "YAML syntax issues in action definitions",
+      "end_of_life": "2026-12-31"
+    }
+  ],
+  "changelog": {
+    "v0.2.0": "Update to actions/setup-python@v5 and actions/cache@v4",
+    "v0.1.2": "Fix YAML document markers and action versions",
+    "v0.1.1": "Initial templates",
+    "v0.1.0": "Beta release"
+  }
+}
