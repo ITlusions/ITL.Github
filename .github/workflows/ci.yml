@@ -63,12 +63,28 @@ jobs:
           actionlint -shellcheck="" .github/workflows/*.yml
 
   # ---------------------------------------------------------------------------
+  # Markdown deadlink validation — all branches
+  # ---------------------------------------------------------------------------
+  check-deadlinks:
+    name: Check markdown deadlinks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan for deadlinks
+        run: |
+          pwsh .github/scripts/check-md-deadlinks.ps1 -FailOnDeadlinks
+
+  # ---------------------------------------------------------------------------
   # 2. Auto-tag (patch bump) — main only
   #    Enables consumers to pin: @v1.2.3 or @v1
   # ---------------------------------------------------------------------------
   auto-tag:
     name: Auto-tag
-    needs: validate
+    needs: [validate, check-deadlinks]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ITLusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
     with:
