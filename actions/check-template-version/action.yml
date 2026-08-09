@@ -13,44 +13,26 @@ runs:
     - name: Check template version status
       shell: bash
       run: |
-        # Extract template version from workflow_ref (e.g., "...@v0.2.5")
-        WORKFLOW_REF="${{ github.workflow_ref }}"
-        TEMPLATE_VERSION=$(echo "$WORKFLOW_REF" | grep -oP '@v\d+\.\d+\.\d+' | sed 's/@//' || echo "")
-
-        if [[ -z "$TEMPLATE_VERSION" ]]; then
-          TEMPLATE_VERSION=$(echo "$WORKFLOW_REF" | grep -oP 'v\d+\.\d+\.\d+' | tail -1)
-        fi
-
-        if [[ -z "$TEMPLATE_VERSION" ]]; then
-          echo "::notice::Could not detect template version from workflow_ref: $WORKFLOW_REF"
-          exit 0
-        fi
+        # Extract template version from workflow_ref (e.g., "...@v0.1.2")
+        TEMPLATE_VERSION=$(echo "${{ github.workflow_ref }}" | grep -oP 'v\d+\.\d+\.\d+' | tail -1 || echo "unknown")
 
         # Fetch manifest from ITL.Github
-        MANIFEST_URL="https://raw.githubusercontent.com/ITlusions/ITL.Github/main/.github/VERSION_MANIFEST.json"
-        if ! curl -s -L "$MANIFEST_URL" -o /tmp/manifest.json; then
-          echo "::debug::Could not fetch version manifest from $MANIFEST_URL"
+        curl -s -L https://raw.githubusercontent.com/ITlusions/ITL.Github/main/.github/VERSION_MANIFEST.json -o /tmp/manifest.json || {
+          echo "::debug::Could not fetch version manifest"
           exit 0
-        fi
-
-        if [[ ! -f /tmp/manifest.json ]] || [[ ! -s /tmp/manifest.json ]]; then
-          echo "::debug::Manifest file is empty or missing"
-          exit 0
-        fi
+        }
 
         # Check if version is deprecated
         DEPRECATED=$(jq -r ".deprecated[] | select(.version==\"$TEMPLATE_VERSION\") | .reason" /tmp/manifest.json 2>/dev/null)
         if [[ ! -z "$DEPRECATED" ]]; then
-          LATEST=$(jq -r '.latest' /tmp/manifest.json 2>/dev/null)
           echo "::warning::Template version $TEMPLATE_VERSION is deprecated: $DEPRECATED"
-          echo "::notice::Update to latest version by changing @$TEMPLATE_VERSION to @$LATEST"
-          exit 0
+          echo "::notice::Update to latest version by changing @$TEMPLATE_VERSION to @$(jq -r '.latest' /tmp/manifest.json)"
         fi
 
         # Check if newer version available
         LATEST=$(jq -r '.latest' /tmp/manifest.json 2>/dev/null)
-        if [[ ! -z "$LATEST" && "$TEMPLATE_VERSION" != "$LATEST" ]]; then
-          echo "::notice::Template version check: using $TEMPLATE_VERSION (latest is $LATEST)"
-        else
-          echo "::notice::Template version check: using $TEMPLATE_VERSION (up to date)"
+        if [[ ! -z "$LATEST" && "$TEMPLATE_VERSION" != "$LATEST" && "$TEMPLATE_VERSION" != "unknown" ]]; then
+          if ! echo "$TEMPLATE_VERSION" | grep -q "$(echo $LATEST | sed 's/v//')"; then
+            echo "::notice::A newer template version is available: $LATEST (currently using $TEMPLATE_VERSION)"
+          fi
         fi
