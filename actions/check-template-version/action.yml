@@ -1,10 +1,10 @@
 ---
 name: Check Template Version Status
 description: |
-  Checks if the current reusable workflow is using a deprecated version or if a newer 
+  Checks if the current reusable workflow is using a deprecated version or if a newer
   version is available. Shows warnings/notices in the workflow UI.
-  
-  Automatically extracts version from github.workflow_ref and compares against 
+
+  Automatically extracts version from github.workflow_ref and compares against
   VERSION_MANIFEST.json from ITL.Github.
 
 runs:
@@ -15,20 +15,20 @@ runs:
       run: |
         # Extract template version from workflow_ref (e.g., "...@v0.1.2")
         TEMPLATE_VERSION=$(echo "${{ github.workflow_ref }}" | grep -oP 'v\d+\.\d+\.\d+' | tail -1 || echo "unknown")
-        
+
         # Fetch manifest from ITL.Github
         curl -s -L https://raw.githubusercontent.com/ITlusions/ITL.Github/main/.github/VERSION_MANIFEST.json -o /tmp/manifest.json || {
           echo "::debug::Could not fetch version manifest"
           exit 0
         }
-        
+
         # Check if version is deprecated
         DEPRECATED=$(jq -r ".deprecated[] | select(.version==\"$TEMPLATE_VERSION\") | .reason" /tmp/manifest.json 2>/dev/null)
         if [[ ! -z "$DEPRECATED" ]]; then
           echo "::warning::Template version $TEMPLATE_VERSION is deprecated: $DEPRECATED"
           echo "::notice::Update to latest version by changing @$TEMPLATE_VERSION to @$(jq -r '.latest' /tmp/manifest.json)"
         fi
-        
+
         # Check if newer version available
         LATEST=$(jq -r '.latest' /tmp/manifest.json 2>/dev/null)
         if [[ ! -z "$LATEST" && "$TEMPLATE_VERSION" != "$LATEST" && "$TEMPLATE_VERSION" != "unknown" ]]; then
