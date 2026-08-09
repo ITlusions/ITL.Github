@@ -6,9 +6,11 @@ One-page cheat sheet for all documentation components.
 
 ## 📦 Alerts
 
+{% raw %}
 ```liquid
 {% include alert.html type="info|warning|success|danger" title="Optional Title" content="Message" %}
 ```
+{% endraw %}
 
 **Colors:** info (blue), warning (yellow), success (green), danger (red)
 
@@ -16,22 +18,27 @@ One-page cheat sheet for all documentation components.
 
 ## 🏷️ Badges
 
+{% raw %}
 ```liquid
 {% include badge.html text="v2.0.0" color="success|warning|danger|info|muted" size="small|medium|large" icon="✨" %}
 ```
+{% endraw %}
 
 ---
 
 ## 🔘 Buttons
 
+{% raw %}
 ```liquid
 {% include button.html text="Label" link="/url" style="primary|secondary|success|danger|outline" icon="🚀" size="small|medium|large" target="_blank" %}
 ```
+{% endraw %}
 
 ---
 
 ## 📦 Cards
 
+{% raw %}
 ```liquid
 {% include card.html 
    title="Title" 
@@ -43,17 +50,20 @@ One-page cheat sheet for all documentation components.
    badge_color="success|warning|info"
 %}
 ```
+{% endraw %}
 
 ---
 
 ## 💻 Code Blocks
 
+{% raw %}
 ```liquid
 {% capture code %}
 your code here
 {% endcapture %}
 {% include code-block.html code=code language="bash|python|yaml|json|powershell" title="Optional Title" filename="file.py" %}
 ```
+{% endraw %}
 
 **Languages:** bash, python, yaml, json, powershell, javascript, typescript, csharp, bicep
 
@@ -61,6 +71,7 @@ your code here
 
 ## 🔗 Link Cards
 
+{% raw %}
 ```liquid
 {% include link-card.html 
    title="Link Title" 
@@ -70,19 +81,23 @@ your code here
    external="true|false"
 %}
 ```
+{% endraw %}
 
 ---
 
 ## 🗺️ Breadcrumbs
 
+{% raw %}
 ```liquid
 {% include breadcrumb.html path="Home,Docs,Page" %}
 ```
+{% endraw %}
 
 ---
 
 ## 📊 Grids
 
+{% raw %}
 ```liquid
 {% capture content %}
   {% include card.html ... %}
@@ -90,6 +105,7 @@ your code here
 {% endcapture %}
 {% include grid.html content=content columns="1|2|3|4|auto" gap="small|medium|large" %}
 ```
+{% endraw %}
 
 ---
 
@@ -114,18 +130,23 @@ your code here
 
 ### Callout
 
+{% raw %}
 ```liquid
 {% include alert.html type="info" content="Important note" %}
 ```
+{% endraw %}
 
 ### CTA Button
 
+{% raw %}
 ```liquid
 {% include button.html text="Get Started" link="/docs" style="primary" icon="🚀" %}
 ```
+{% endraw %}
 
 ### Feature Grid
 
+{% raw %}
 ```liquid
 {% capture features %}
   {% include card.html title="Feature 1" icon="🔒" description="..." %}
@@ -134,9 +155,11 @@ your code here
 {% endcapture %}
 {% include grid.html content=features columns="3" %}
 ```
+{% endraw %}
 
 ### Installation Instructions
 
+{% raw %}
 ```liquid
 {% capture install %}
 git clone https://github.com/ITlusions/repo.git
@@ -145,9 +168,11 @@ docker compose up -d
 {% endcapture %}
 {% include code-block.html code=install language="bash" title="Quick Start" %}
 ```
+{% endraw %}
 
 ### Documentation Links
 
+{% raw %}
 ```liquid
 {% include link-card.html 
    title="Documentation" 
@@ -156,6 +181,7 @@ docker compose up -d
    icon="📖"
 %}
 ```
+{% endraw %}
 
 ---
 
@@ -170,6 +196,7 @@ docker compose up -d
 
 **Quick Copy Template:**
 
+{% raw %}
 ```liquid
 ---
 layout: default
@@ -191,3 +218,4 @@ command here
 
 {% include button.html text="Action" link="/page" style="primary" %}
 ```
+{% endraw %}
