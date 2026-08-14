@@ -28,6 +28,17 @@ on:
         description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
         required: true
         type: string
+      ref:
+        description: >
+          Specific branch/tag/SHA to check out. Required when chained right
+          after a job that just committed a version bump (e.g. from
+          _reusable-claude-plugin-version-tag.yml) — without it, this job's
+          own checkout resolves the ORIGINAL triggering ref, not the fresh
+          commit, and will read the plugin's previous (already-released)
+          version instead of the one just tagged. Empty = default event ref.
+        required: false
+        type: string
+        default: ""
       claude-code-version:
         description: "npm version spec for @anthropic-ai/claude-code"
         required: false
@@ -51,6 +62,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.3.0
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
