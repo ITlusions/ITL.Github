@@ -4,10 +4,11 @@ name: Claude Plugin Version + Tag (reusable)
 # Reusable workflow: compute the next semver for one Claude Code plugin
 # living in its own subdirectory (of a possibly multi-plugin marketplace
 # repo), based on conventional-commit messages touching that subdirectory
-# since its last {component-name}--v{version} tag. Writes the version into
-# plugin.json, commits, and tags via `claude plugin tag` (which also
-# validates that plugin.json and any enclosing marketplace.json entry
-# agree).
+# since its last {component-name}/v{version} tag. Writes the version into
+# plugin.json, commits, validates via `claude plugin validate --strict`,
+# and tags. (Not `claude plugin tag` — that CLI enforces its own
+# {name}--v{version} format with no way to override it; we replicate its
+# validation step and create the {name}/v{version} tag ourselves instead.)
 #
 # Idempotent: no-ops (changed=false) if the plugin's directory hasn't
 # changed since its last tag. A plugin with no tag yet keeps whatever
@@ -44,7 +45,7 @@ on:
         required: true
         type: string
       component-name:
-        description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
+        description: "Plugin name, used as the tag prefix: {component-name}/v{version}"
         required: true
         type: string
       branch:
@@ -71,7 +72,7 @@ on:
         description: "Resolved version, e.g. 1.0.2"
         value: ${{ jobs.version-tag.outputs.version }}
       tag:
-        description: "Tag name, e.g. my-plugin--v1.0.2"
+        description: "Tag name, e.g. my-plugin/v1.0.2"
         value: ${{ jobs.version-tag.outputs.tag }}
 
 jobs:
@@ -119,7 +120,7 @@ jobs:
             exit 1
           fi
 
-          latest_tag=$(git tag -l "${name}--v*" | sort -V | tail -n1 || true)
+          latest_tag=$(git tag -l "${name}/v*" | sort -V | tail -n1 || true)
           is_first_release=false
 
           if [ -z "$latest_tag" ]; then
@@ -133,7 +134,7 @@ jobs:
               exit 0
             fi
 
-            latest_version="${latest_tag##*--v}"
+            latest_version="${latest_tag##*/v}"
             bump=patch
             while IFS= read -r msg; do
               case "$msg" in
@@ -171,8 +172,15 @@ jobs:
             git push origin "${{ inputs.branch }}"
           fi
 
-          tag="${name}--v${new_version}"
-          claude plugin tag "$dir" --push -m "Release %s"
+          # claude plugin tag enforces its own {name}--v{version} format and
+          # can't be told to use a different one — so we validate explicitly
+          # (the same check it would have done internally) and create the
+          # tag ourselves in the {name}/v{version} format instead.
+          claude plugin validate --strict "$dir"
+
+          tag="${name}/v${new_version}"
+          git tag -a "$tag" -m "Release ${new_version}"
+          git push origin "$tag"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "version=$new_version" >> "$GITHUB_OUTPUT"

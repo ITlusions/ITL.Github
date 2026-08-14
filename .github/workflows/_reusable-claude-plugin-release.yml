@@ -3,7 +3,7 @@ name: Claude Plugin Release (reusable)
 # ---------------------------------------------------------------------------
 # Reusable workflow: publish a GitHub Release for one Claude Code plugin.
 # Resolves the plugin's current version from its plugin.json, skips
-# (idempotent) if a release for that {component-name}--v{version} tag
+# (idempotent) if a release for that {component-name}/v{version} tag
 # already exists, otherwise re-validates the plugin, zips it, and delegates
 # actual release creation to _reusable-release-gh.yml (nested reusable
 # workflow call — same repo, so no version ref needed).
@@ -25,7 +25,7 @@ on:
         required: true
         type: string
       component-name:
-        description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
+        description: "Plugin name, used as the tag prefix: {component-name}/v{version}"
         required: true
         type: string
       ref:
@@ -88,7 +88,7 @@ jobs:
           fi
 
           version=$(node -p "require('./$manifest').version")
-          tag="${name}--v${version}"
+          tag="${name}/v${version}"
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -135,9 +135,7 @@ jobs:
     uses: ./.github/workflows/_reusable-release-gh.yml
     with:
       tag: ${{ needs.build.outputs.tag }}
-      # "{name}--v{version}" is the tag (claude plugin tag's own convention,
-      # not ours to change) — give the release a cleaner display title
-      # instead of reusing that raw tag string.
+      # Give the release a display title without the "/v" tag separator.
       release-name: "${{ inputs.component-name }} v${{ needs.build.outputs.version }}"
       artifact-name: ${{ needs.build.outputs.artifact-name }}
       artifact-run-id: ${{ github.run_id }}

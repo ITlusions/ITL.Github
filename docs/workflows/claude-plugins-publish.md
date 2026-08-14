@@ -18,7 +18,7 @@ to the target branch.
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `component-path` | string | *(required)* | Path to the plugin directory (contains `.claude-plugin/plugin.json`) |
-| `component-name` | string | *(required)* | Plugin name, used as the tag prefix: `{component-name}--v{version}` |
+| `component-name` | string | *(required)* | Plugin name, used as the tag prefix: `{component-name}/v{version}` |
 | `branch` | string | `main` | Branch to commit the version bump and tag on |
 | `claude-code-version` | string | `latest` | npm version spec for `@anthropic-ai/claude-code` |
 
@@ -34,7 +34,7 @@ to the target branch.
 |---|---|
 | `changed` | `'true'` if a new version was computed and tagged |
 | `version` | Resolved version, e.g. `1.0.2` |
-| `tag` | Tag name, e.g. `my-plugin--v1.0.2` |
+| `tag` | Tag name, e.g. `my-plugin/v1.0.2` |
 | `release-url` | URL of the created (or pre-existing) GitHub Release |
 
 ## Usage
