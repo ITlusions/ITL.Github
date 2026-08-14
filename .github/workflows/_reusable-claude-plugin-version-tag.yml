@@ -120,9 +120,11 @@ jobs:
           fi
 
           latest_tag=$(git tag -l "${name}--v*" | sort -V | tail -n1 || true)
+          is_first_release=false
 
           if [ -z "$latest_tag" ]; then
             new_version=$(node -p "require('./$manifest').version")
+            is_first_release=true
             echo "$name: no prior tag, baselining at $new_version"
           else
             if git diff --quiet "$latest_tag" -- "$dir"; then
@@ -151,20 +153,26 @@ jobs:
             echo "$name: $latest_version -> $new_version (bump: $bump)"
           fi
 
-          node -e "
-            const fs = require('fs');
-            const p = '$manifest';
-            const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-            j.version = '$new_version';
-            fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
-          "
+          # On a first release, plugin.json's version IS the baseline already —
+          # writing it back produces zero diff, so `git commit` would fail
+          # with "nothing to commit". Only touch/commit the manifest when
+          # this is an actual bump.
+          if [ "$is_first_release" = "false" ]; then
+            node -e "
+              const fs = require('fs');
+              const p = '$manifest';
+              const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+              j.version = '$new_version';
+              fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+            "
 
-          git add "$manifest"
-          git commit -m "chore($name): bump version to $new_version [skip ci]"
+            git add "$manifest"
+            git commit -m "chore($name): bump version to $new_version [skip ci]"
+            git push origin "${{ inputs.branch }}"
+          fi
 
           tag="${name}--v${new_version}"
           claude plugin tag "$dir" --push -m "Release %s"
-          git push origin "${{ inputs.branch }}"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "version=$new_version" >> "$GITHUB_OUTPUT"

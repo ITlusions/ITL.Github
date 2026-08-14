@@ -16,7 +16,9 @@ whole repo — needed for a repo containing several independently-versioned plug
 
 No-ops (`changed=false`) if nothing under `component-path` changed since the plugin's last tag.
 A plugin with no tag yet keeps whatever version is currently committed in `plugin.json` as its v1
-baseline — nothing is auto-bumped on the very first run. Safe to call on every push.
+baseline — nothing is auto-bumped on the very first run, and no commit is made (the baseline
+version is already correct as committed by whoever added the plugin), only a tag. Safe to call on
+every push.
 
 ## Version Bumping
 
