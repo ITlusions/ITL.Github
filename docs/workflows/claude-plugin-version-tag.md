@@ -4,7 +4,7 @@
 
 Computes the next semver for one Claude Code plugin living in its own subdirectory (of a
 possibly multi-plugin marketplace repo), based on conventional-commit messages touching that
-subdirectory since its last `{component-name}--v{version}` tag. Writes the version into
+subdirectory since its last `{component-name}/v{version}` tag. Writes the version into
 `plugin.json`, commits, and tags via `claude plugin tag` (which also validates that `plugin.json`
 and any enclosing `marketplace.json` entry agree).
 
@@ -33,7 +33,7 @@ every push.
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `component-path` | string | *(required)* | Path to the plugin directory (contains `.claude-plugin/plugin.json`) |
-| `component-name` | string | *(required)* | Plugin name, used as the tag prefix: `{component-name}--v{version}` |
+| `component-name` | string | *(required)* | Plugin name, used as the tag prefix: `{component-name}/v{version}` |
 | `branch` | string | `main` | Branch to commit the version bump and tag on |
 | `claude-code-version` | string | `latest` | npm version spec for `@anthropic-ai/claude-code` |
 
@@ -49,7 +49,7 @@ every push.
 |---|---|---|
 | `changed` | `'true'` if a new version was tagged | `true` |
 | `version` | Resolved version | `1.0.2` |
-| `tag` | Tag name | `my-plugin--v1.0.2` |
+| `tag` | Tag name | `my-plugin/v1.0.2` |
 
 ## Usage
 
