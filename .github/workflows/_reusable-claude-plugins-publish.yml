@@ -84,6 +84,13 @@ jobs:
     with:
       component-path: ${{ inputs.component-path }}
       component-name: ${{ inputs.component-name }}
+      # Pass the tag version-tag just pushed (empty when it no-op'd, which
+      # falls back to the default event ref — correct either way, since an
+      # unchanged plugin's plugin.json wasn't touched this run). Without
+      # this, release's own checkout resolves the ORIGINAL triggering ref
+      # instead of the fresh bump commit, and reads the plugin's previous
+      # (already-released) version instead of the one just tagged.
+      ref: ${{ needs.version-tag.outputs.tag }}
       claude-code-version: ${{ inputs.claude-code-version }}
     permissions:
       contents: write
