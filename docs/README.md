@@ -33,6 +33,9 @@ uses: ITlusions/ITL.Github/.github/workflows/<name>.yml@main
 | [`_reusable-docker-retag.yml`](workflows/docker-retag.md) | Promote image by retagging (no rebuild) |
 | [`_reusable-publish-pypi.yml`](workflows/publish-pypi.md) | Publish wheel to PyPI via OIDC |
 | [`_reusable-release-gh.yml`](workflows/release-gh.md) | Create GitHub Release with assets |
+| [`_reusable-claude-plugin-validate.yml`](workflows/claude-plugin-validate.md) | Validate a Claude Code plugin/marketplace manifest |
+| [`_reusable-claude-plugin-version-tag.yml`](workflows/claude-plugin-version-tag.md) | Subdirectory-scoped semver + tag for one plugin in a multi-plugin repo |
+| [`_reusable-claude-plugin-release.yml`](workflows/claude-plugin-release.md) | Publish a GitHub Release for one Claude Code plugin |
 
 ### Composite Actions
 
