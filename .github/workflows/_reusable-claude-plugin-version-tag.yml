@@ -1,0 +1,171 @@
+name: Claude Plugin Version + Tag (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: compute the next semver for one Claude Code plugin
+# living in its own subdirectory (of a possibly multi-plugin marketplace
+# repo), based on conventional-commit messages touching that subdirectory
+# since its last {component-name}--v{version} tag. Writes the version into
+# plugin.json, commits, and tags via `claude plugin tag` (which also
+# validates that plugin.json and any enclosing marketplace.json entry
+# agree).
+#
+# Idempotent: no-ops (changed=false) if the plugin's directory hasn't
+# changed since its last tag. A plugin with no tag yet keeps whatever
+# version is currently committed in plugin.json as its v1 baseline —
+# nothing is auto-bumped on the very first run.
+#
+# Bump sizing from conventional commits touching component-path since the
+# last tag:
+#   feat!: ... or a "BREAKING CHANGE" footer   -> major
+#   feat: ... / feat(scope): ...                -> minor
+#   anything else (fix:, chore:, docs:, ...)    -> patch
+#
+# Call once per plugin (e.g. via a matrix). If calling for multiple plugins
+# in the same repo/branch, use `strategy: max-parallel: 1` on that matrix —
+# each call commits + pushes to the target branch, and parallel pushes to
+# the same branch from independent matrix jobs will race.
+#
+# Usage:
+#   jobs:
+#     version-tag:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-version-tag.yml@main
+#       with:
+#         component-path: "plugins/my-plugin"
+#         component-name: "my-plugin"
+#         branch: "main"
+#       secrets:
+#         gh-pat: ${{ secrets.GH_PAT }}   # optional; falls back to GITHUB_TOKEN
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      component-path:
+        description: "Path to the plugin directory (contains .claude-plugin/plugin.json)"
+        required: true
+        type: string
+      component-name:
+        description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
+        required: true
+        type: string
+      branch:
+        description: "Branch to commit the version bump and tag on"
+        required: false
+        type: string
+        default: "main"
+      claude-code-version:
+        description: "npm version spec for @anthropic-ai/claude-code"
+        required: false
+        type: string
+        default: "latest"
+
+    secrets:
+      gh-pat:
+        description: "PAT for pushing (required if GITHUB_TOKEN lacks write access)"
+        required: false
+
+    outputs:
+      changed:
+        description: "'true' if a new version was computed and tagged"
+        value: ${{ jobs.version-tag.outputs.changed }}
+      version:
+        description: "Resolved version, e.g. 1.0.2"
+        value: ${{ jobs.version-tag.outputs.version }}
+      tag:
+        description: "Tag name, e.g. my-plugin--v1.0.2"
+        value: ${{ jobs.version-tag.outputs.tag }}
+
+jobs:
+  version-tag:
+    name: Version + tag ${{ inputs.component-name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.0
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          token: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code@${{ inputs.claude-code-version }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute next version, bump plugin.json, commit, tag, push
+        id: bump
+        run: |
+          set -euo pipefail
+          name="${{ inputs.component-name }}"
+          dir="${{ inputs.component-path }}"
+          [[ "$dir" == */ ]] || dir="${dir}/"
+          manifest="${dir}.claude-plugin/plugin.json"
+
+          if [ ! -f "$manifest" ]; then
+            echo "::error::No plugin.json found at $manifest"
+            exit 1
+          fi
+
+          latest_tag=$(git tag -l "${name}--v*" | sort -V | tail -n1 || true)
+
+          if [ -z "$latest_tag" ]; then
+            new_version=$(node -p "require('./$manifest').version")
+            echo "$name: no prior tag, baselining at $new_version"
+          else
+            if git diff --quiet "$latest_tag" -- "$dir"; then
+              echo "$name: no changes since $latest_tag"
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            latest_version="${latest_tag##*--v}"
+            bump=patch
+            while IFS= read -r msg; do
+              case "$msg" in
+                *BREAKING\ CHANGE*) bump=major ;;
+                *!:*) bump=major ;;
+                feat:*|feat\(*) [ "$bump" = major ] || bump=minor ;;
+              esac
+            done < <(git log "${latest_tag}..HEAD" --pretty=%s -- "$dir")
+
+            IFS=. read -r major minor patch <<< "$latest_version"
+            case "$bump" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+            new_version="${major}.${minor}.${patch}"
+            echo "$name: $latest_version -> $new_version (bump: $bump)"
+          fi
+
+          node -e "
+            const fs = require('fs');
+            const p = '$manifest';
+            const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+            j.version = '$new_version';
+            fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+          "
+
+          git add "$manifest"
+          git commit -m "chore($name): bump version to $new_version [skip ci]"
+
+          tag="${name}--v${new_version}"
+          claude plugin tag "$dir" --push -m "Release %s"
+          git push origin "${{ inputs.branch }}"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"

@@ -345,7 +345,7 @@ jobs:
 
 ## Related Documentation
 
-- [Reusable Python Publish Workflow](./reusable-python-publish.md)
-- [Reusable Python CI Workflow](./reusable-python-ci.md)
+- [Reusable Python Publish Workflow](../workflows/reusable-python-publish.md)
+- [Reusable Python CI Workflow](../workflows/reusable-python-ci.md)
 - [Build Provenance Attestation (GitHub Docs)](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
 - [SBOM in GitHub (CycloneDX)](https://github.com/anchore/sbom-action)

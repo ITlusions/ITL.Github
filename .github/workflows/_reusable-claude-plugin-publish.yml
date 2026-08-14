@@ -1,0 +1,90 @@
+name: Claude Plugin Publish (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: version, tag, and release one Claude Code plugin as a
+# single callable unit — combines _reusable-claude-plugin-version-tag.yml
+# and _reusable-claude-plugin-release.yml (chained, nested reusable-workflow
+# calls) so a caller pipeline can have one "publish" job instead of two.
+#
+# Idempotent end to end: no-ops the tag if the plugin's directory hasn't
+# changed since its last tag, and no-ops the release if one already exists
+# for the current tag — safe to call on every push to the target branch.
+#
+# Usage:
+#   jobs:
+#     publish:
+#       needs: [ ci ]
+#       if: github.ref == 'refs/heads/main'
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-publish.yml@main
+#       with:
+#         component-path: "plugins/my-plugin"
+#         component-name: "my-plugin"
+#         branch: "main"
+#       permissions:
+#         contents: write
+#         actions: read
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      component-path:
+        description: "Path to the plugin directory (contains .claude-plugin/plugin.json)"
+        required: true
+        type: string
+      component-name:
+        description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
+        required: true
+        type: string
+      branch:
+        description: "Branch to commit the version bump and tag on"
+        required: false
+        type: string
+        default: "main"
+      claude-code-version:
+        description: "npm version spec for @anthropic-ai/claude-code"
+        required: false
+        type: string
+        default: "latest"
+
+    secrets:
+      gh-pat:
+        description: "PAT for pushing the version bump/tag (required if GITHUB_TOKEN lacks write access)"
+        required: false
+
+    outputs:
+      changed:
+        description: "'true' if a new version was computed and tagged"
+        value: ${{ jobs.version-tag.outputs.changed }}
+      version:
+        description: "Resolved version, e.g. 1.0.2"
+        value: ${{ jobs.version-tag.outputs.version }}
+      tag:
+        description: "Tag name, e.g. my-plugin--v1.0.2"
+        value: ${{ jobs.version-tag.outputs.tag }}
+      release-url:
+        description: "URL of the created (or pre-existing) GitHub Release"
+        value: ${{ jobs.release.outputs.release-url }}
+
+jobs:
+  version-tag:
+    uses: ./.github/workflows/_reusable-claude-plugin-version-tag.yml
+    with:
+      component-path: ${{ inputs.component-path }}
+      component-name: ${{ inputs.component-name }}
+      branch: ${{ inputs.branch }}
+      claude-code-version: ${{ inputs.claude-code-version }}
+    secrets:
+      gh-pat: ${{ secrets.gh-pat }}
+    permissions:
+      contents: write
+
+  release:
+    needs: version-tag
+    uses: ./.github/workflows/_reusable-claude-plugin-release.yml
+    with:
+      component-path: ${{ inputs.component-path }}
+      component-name: ${{ inputs.component-name }}
+      claude-code-version: ${{ inputs.claude-code-version }}
+    permissions:
+      contents: write
+      actions: read

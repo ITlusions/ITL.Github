@@ -1,0 +1,126 @@
+name: Claude Plugin Release (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: publish a GitHub Release for one Claude Code plugin.
+# Resolves the plugin's current version from its plugin.json, skips
+# (idempotent) if a release for that {component-name}--v{version} tag
+# already exists, otherwise re-validates the plugin, zips it, and delegates
+# actual release creation to _reusable-release-gh.yml (nested reusable
+# workflow call — same repo, so no version ref needed).
+#
+# Usage (safe to call on every run for every plugin — a matrix over all
+# discovered plugins works fine; unchanged plugins just no-op):
+#   jobs:
+#     release:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-release.yml@main
+#       with:
+#         component-path: "plugins/my-plugin"
+#         component-name: "my-plugin"
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      component-path:
+        description: "Path to the plugin directory (contains .claude-plugin/plugin.json)"
+        required: true
+        type: string
+      component-name:
+        description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
+        required: true
+        type: string
+      claude-code-version:
+        description: "npm version spec for @anthropic-ai/claude-code"
+        required: false
+        type: string
+        default: "latest"
+
+    outputs:
+      release-url:
+        description: "URL of the created (or pre-existing) GitHub Release"
+        value: ${{ jobs.release.outputs.release-url }}
+
+jobs:
+  build:
+    name: Build ${{ inputs.component-name }} artifact
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+      skip: ${{ steps.check.outputs.exists }}
+      artifact-name: ${{ steps.resolve.outputs.artifact-name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code@${{ inputs.claude-code-version }}
+
+      - name: Resolve current version and tag from plugin.json
+        id: resolve
+        run: |
+          set -euo pipefail
+          name="${{ inputs.component-name }}"
+          dir="${{ inputs.component-path }}"
+          [[ "$dir" == */ ]] || dir="${dir}/"
+          manifest="${dir}.claude-plugin/plugin.json"
+
+          if [ ! -f "$manifest" ]; then
+            echo "::error::No plugin.json found at $manifest"
+            exit 1
+          fi
+
+          version=$(node -p "require('./$manifest').version")
+          tag="${name}--v${version}"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "artifact-name=${name}-${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if a release for this tag already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.resolve.outputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate the plugin
+        if: steps.check.outputs.exists == 'false'
+        run: claude plugin validate --strict "${{ inputs.component-path }}"
+
+      - name: Zip the plugin
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+          parent_dir=$(dirname "${{ inputs.component-path }}")
+          base=$(basename "${{ inputs.component-path }}")
+          (cd "$parent_dir" && zip -r "${{ github.workspace }}/${{ steps.resolve.outputs.artifact-name }}.zip" "$base")
+
+      - name: Upload artifact
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/upload-artifact@v4.3.0
+        with:
+          name: ${{ steps.resolve.outputs.artifact-name }}
+          path: ${{ steps.resolve.outputs.artifact-name }}.zip
+          retention-days: 7
+
+  release:
+    name: Release ${{ inputs.component-name }}
+    needs: build
+    if: needs.build.outputs.skip == 'false'
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/_reusable-release-gh.yml
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      artifact-run-id: ${{ github.run_id }}
