@@ -1,4 +1,4 @@
-name: Claude Plugin Publish (reusable)
+name: Claude Plugins Publish (reusable)
 
 # ---------------------------------------------------------------------------
 # Reusable workflow: version, tag, and release one Claude Code plugin as a
@@ -15,7 +15,7 @@ name: Claude Plugin Publish (reusable)
 #     publish:
 #       needs: [ ci ]
 #       if: github.ref == 'refs/heads/main'
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-publish.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-publish.yml@main
 #       with:
 #         component-path: "plugins/my-plugin"
 #         component-name: "my-plugin"
