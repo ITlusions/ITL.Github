@@ -135,5 +135,9 @@ jobs:
     uses: ./.github/workflows/_reusable-release-gh.yml
     with:
       tag: ${{ needs.build.outputs.tag }}
+      # "{name}--v{version}" is the tag (claude plugin tag's own convention,
+      # not ours to change) — give the release a cleaner display title
+      # instead of reusing that raw tag string.
+      release-name: "${{ inputs.component-name }} v${{ needs.build.outputs.version }}"
       artifact-name: ${{ needs.build.outputs.artifact-name }}
       artifact-run-id: ${{ github.run_id }}

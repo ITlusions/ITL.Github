@@ -29,6 +29,7 @@ based on the tag name:
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `tag` | string | **required** | Release tag, e.g. `v1.2.3` |
+| `release-name` | string | `""` | Display title for the release. Empty = use the tag itself |
 | `artifact-name` | string | `""` | Name of the artifact to attach as a release asset. Empty = no asset |
 | `artifact-run-id` | string | `""` | Run ID of the workflow that produced the artifact. Empty = current run |
 | `generate-release-notes` | boolean | `true` | Auto-generate release notes from commit history |

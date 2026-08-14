@@ -20,6 +20,11 @@ on:
         description: "Release tag, e.g. v1.2.3"
         required: true
         type: string
+      release-name:
+        description: "Display title for the release. Defaults to the tag itself if not set"
+        required: false
+        type: string
+        default: ""
       artifact-name:
         description: "Name of the artifact to download as release asset"
         required: false
@@ -91,7 +96,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          name: "${{ inputs.tag }}"
+          name: "${{ inputs.release-name != '' && inputs.release-name || inputs.tag }}"
           prerelease: ${{ steps.meta.outputs.prerelease }}
           generate_release_notes: ${{ inputs.generate-release-notes }}
           body: ${{ inputs.body }}
