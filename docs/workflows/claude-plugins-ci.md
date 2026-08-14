@@ -1,6 +1,6 @@
-# Claude Plugin Validate
+# Claude Plugins CI
 
-**File:** `_reusable-claude-plugin-validate.yml`
+**File:** `_reusable-claude-plugins-ci.yml`
 
 Validates a Claude Code plugin or marketplace manifest via `claude plugin validate --strict`.
 Installs `@anthropic-ai/claude-code` and runs the validator against a given path — either a
@@ -19,12 +19,12 @@ single plugin directory (checks its `.claude-plugin/plugin.json`) or a marketpla
 ```yaml
 jobs:
   validate-marketplace:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-validate.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-ci.yml@main
     with:
       path: "."
 
   validate-plugin:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-validate.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-ci.yml@main
     with:
       path: "plugins/my-plugin"
 ```

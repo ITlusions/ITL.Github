@@ -1,6 +1,6 @@
-# Claude Plugin Publish
+# Claude Plugins Publish
 
-**File:** `_reusable-claude-plugin-publish.yml`
+**File:** `_reusable-claude-plugins-publish.yml`
 
 Version, tag, and release one Claude Code plugin as a single callable unit — chains
 [`_reusable-claude-plugin-version-tag.yml`](claude-plugin-version-tag.md) and
@@ -59,7 +59,7 @@ jobs:
     strategy:
       matrix:
         plugin: [ my-plugin ]   # add another entry per additional plugin
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-validate.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-ci.yml@main
     with:
       path: plugins/${{ matrix.plugin }}
 
@@ -70,7 +70,7 @@ jobs:
       max-parallel: 1
       matrix:
         plugin: [ my-plugin ]
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-publish.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-publish.yml@main
     with:
       component-path: plugins/${{ matrix.plugin }}
       component-name: ${{ matrix.plugin }}

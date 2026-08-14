@@ -46,7 +46,7 @@ jobs:
 ```
 
 Pair with [claude-plugin-version-tag.md](claude-plugin-version-tag.md), which produces the tag
-this workflow releases, and [claude-plugin-validate.md](claude-plugin-validate.md) for the
+this workflow releases, and [claude-plugins-ci.md](claude-plugins-ci.md) for the
 validation step run before either.
 
 Release zip URLs (`.../releases/download/{tag}/{name}-{version}.zip`) are usable directly with
