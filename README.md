@@ -21,6 +21,7 @@ Reference via `uses: ITlusions/ITL.Github/.github/workflows/<name>.yml@main`
 | `_reusable-claude-plugin-validate.yml` | Validate a Claude Code plugin/marketplace manifest | [docs](docs/workflows/claude-plugin-validate.md) |
 | `_reusable-claude-plugin-version-tag.yml` | Subdirectory-scoped semver + tag for one plugin in a multi-plugin repo | [docs](docs/workflows/claude-plugin-version-tag.md) |
 | `_reusable-claude-plugin-release.yml` | Publish a GitHub Release for one Claude Code plugin | [docs](docs/workflows/claude-plugin-release.md) |
+| `_reusable-claude-plugin-publish.yml` | Version + tag + release one plugin as a single `publish` job | [docs](docs/workflows/claude-plugin-publish.md) |
 
 ## Composite Actions
 

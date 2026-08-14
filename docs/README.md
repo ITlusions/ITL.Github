@@ -36,6 +36,7 @@ uses: ITlusions/ITL.Github/.github/workflows/<name>.yml@main
 | [`_reusable-claude-plugin-validate.yml`](workflows/claude-plugin-validate.md) | Validate a Claude Code plugin/marketplace manifest |
 | [`_reusable-claude-plugin-version-tag.yml`](workflows/claude-plugin-version-tag.md) | Subdirectory-scoped semver + tag for one plugin in a multi-plugin repo |
 | [`_reusable-claude-plugin-release.yml`](workflows/claude-plugin-release.md) | Publish a GitHub Release for one Claude Code plugin |
+| [`_reusable-claude-plugin-publish.yml`](workflows/claude-plugin-publish.md) | Version + tag + release one plugin as a single `publish` job |
 
 ### Composite Actions
 
