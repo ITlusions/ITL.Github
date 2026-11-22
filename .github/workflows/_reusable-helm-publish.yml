@@ -1,0 +1,154 @@
+name: Helm Publish — OCI (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: push a packaged Helm chart to an OCI registry
+#
+# Reuses the chart artifact produced by the Helm CI workflow for the same
+# commit, so the published chart is the one that passed CI. When no CI run
+# is found and fallback-build is true, the chart is built from source.
+#
+# Usage:
+#   jobs:
+#     publish:
+#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-publish.yml@main
+#       with:
+#         commit-sha: ${{ github.sha }}
+#         chart-path: "charts/myapp"
+#         environment: "production"
+#         ci-workflow-name: "Helm CI — Branch push"
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      commit-sha:
+        description: "Commit SHA whose CI run provides the chart artifact"
+        required: true
+        type: string
+      chart-path:
+        description: "Path to the chart directory (contains Chart.yaml), used when fallback-build runs"
+        required: false
+        type: string
+        default: "."
+      helm-version:
+        description: "Helm version to install"
+        required: false
+        type: string
+        default: "v4.3.2"
+      registry:
+        description: "OCI registry host to push to"
+        required: false
+        type: string
+        default: "ghcr.io"
+      registry-namespace:
+        description: "Registry namespace; empty uses the repository owner (lowercased)"
+        required: false
+        type: string
+        default: ""
+      environment:
+        description: "GitHub environment that gates the publish job"
+        required: false
+        type: string
+        default: "production"
+      artifact-name:
+        description: "Name of the chart artifact produced by the Helm CI workflow"
+        required: false
+        type: string
+        default: "helm-chart"
+      ci-workflow-name:
+        description: "Display name of the CI workflow run to download the artifact from"
+        required: false
+        type: string
+        default: "Helm CI — Branch push"
+      fallback-build:
+        description: "Build the chart from source when no CI artifact is found"
+        required: false
+        type: boolean
+        default: true
+
+    outputs:
+      published:
+        description: "true when the chart was pushed to the registry"
+        value: ${{ jobs.publish.outputs.published }}
+      package:
+        description: "Name and version of the pushed chart package (name-version)"
+        value: ${{ jobs.publish.outputs.package }}
+
+jobs:
+  publish:
+    name: Push chart to ${{ inputs.registry }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    outputs:
+      published: ${{ steps.push.outputs.published }}
+      package: ${{ steps.push.outputs.package }}
+
+    steps:
+      - name: Find CI run for commit
+        id: find-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ inputs.commit-sha }}
+          CI_WORKFLOW: ${{ inputs.ci-workflow-name }}
+        run: |
+          run_id=$(gh run list --commit "$COMMIT_SHA" --workflow "$CI_WORKFLOW" \
+            --status success --limit 1 --json databaseId --jq '.[0].databaseId // ""')
+          echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download chart artifact from CI run
+        if: steps.find-run.outputs.run-id != ''
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: dist/
+          run-id: ${{ steps.find-run.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Check out repository
+        if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.commit-sha }}
+
+      - name: Set up Helm
+        if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
+        uses: azure/setup-helm@v5.1.0
+        with:
+          version: ${{ inputs.helm-version }}
+
+      - name: Build chart from source
+        if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+        run: |
+          helm dependency build "$CHART_PATH"
+          helm package "$CHART_PATH" --destination dist/
+
+      - name: Log in to registry
+        env:
+          REGISTRY: ${{ inputs.registry }}
+          REGISTRY_USER: ${{ github.actor }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          helm registry login "$REGISTRY" --username "$REGISTRY_USER" --password-stdin <<< "$GH_TOKEN"
+
+      - name: Push chart
+        id: push
+        env:
+          REGISTRY: ${{ inputs.registry }}
+          NAMESPACE: ${{ inputs.registry-namespace }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          packages=(dist/*.tgz)
+          if [ ! -f "${packages[0]}" ]; then
+            echo "No chart package found in dist/" >&2
+            exit 1
+          fi
+          namespace="${NAMESPACE:-$REPOSITORY_OWNER}"
+          namespace="${namespace,,}"
+          helm push "${packages[0]}" "oci://$REGISTRY/$namespace"
+          echo "package=$(basename "${packages[0]}" .tgz)" >> "$GITHUB_OUTPUT"
+          echo "published=true" >> "$GITHUB_OUTPUT"
