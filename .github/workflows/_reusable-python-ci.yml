@@ -33,7 +33,7 @@ jobs:
     - name: Check template version status
       uses: ITlusions/ITL.Github/actions/check-template-version@v0.2.4
     
-    - uses: actions/checkout@v4.3.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4.3.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -86,7 +86,7 @@ jobs:
     needs: [ test, lint ]
     
     steps:
-    - uses: actions/checkout@v4.3.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
     
