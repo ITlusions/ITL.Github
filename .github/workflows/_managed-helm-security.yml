@@ -20,6 +20,10 @@ on:
         description: "Chart directory name under charts/"
         required: true
         type: string
+      summary-layout:
+        description: "Job summary layout: classic, flat, sections, counts or expiry"
+        type: string
+        default: classic
 
 permissions:
   contents: read
@@ -64,6 +68,7 @@ jobs:
       - name: Scan chart
         env:
           CHART: ${{ inputs.chart }}
+          SECURITY_SUMMARY_LAYOUT: ${{ inputs.summary-layout }}
         run: security-scan chart "$CHART"
 
       - name: Store security reports
