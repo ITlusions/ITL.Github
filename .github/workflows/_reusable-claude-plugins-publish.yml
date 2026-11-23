@@ -32,7 +32,7 @@ on:
         required: true
         type: string
       component-name:
-        description: "Plugin name, used as the tag prefix: {component-name}--v{version}"
+        description: "Plugin name, used as the tag prefix: {component-name}/v{version}"
         required: true
         type: string
       branch:
@@ -59,7 +59,7 @@ on:
         description: "Resolved version, e.g. 1.0.2"
         value: ${{ jobs.version-tag.outputs.version }}
       tag:
-        description: "Tag name, e.g. my-plugin--v1.0.2"
+        description: "Tag name, e.g. my-plugin/v1.0.2"
         value: ${{ jobs.version-tag.outputs.tag }}
       release-url:
         description: "URL of the created (or pre-existing) GitHub Release"

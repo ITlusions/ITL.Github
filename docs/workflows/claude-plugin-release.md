@@ -4,7 +4,7 @@
 
 Publishes a GitHub Release for one Claude Code plugin. Resolves the plugin's *current* version
 directly from its `plugin.json` (no need to pass a version in), skips (idempotently) if a release
-for that `{component-name}--v{version}` tag already exists, otherwise re-validates the plugin,
+for that `{component-name}/v{version}` tag already exists, otherwise re-validates the plugin,
 zips it, and delegates actual release creation to
 [`_reusable-release-gh.yml`](release-gh.md) (a nested reusable-workflow call within this same
 repo).
@@ -18,7 +18,7 @@ just tagged.
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `component-path` | string | *(required)* | Path to the plugin directory (contains `.claude-plugin/plugin.json`) |
-| `component-name` | string | *(required)* | Plugin name, used as the tag prefix: `{component-name}--v{version}` |
+| `component-name` | string | *(required)* | Plugin name, used as the tag prefix: `{component-name}/v{version}` |
 | `ref` | string | *(event ref)* | Branch/tag/SHA to check out. **Pass this when chaining right after a job that just committed a version bump** (e.g. `_reusable-claude-plugin-version-tag.yml`'s `tag` output) — without it, this job's own checkout resolves the original triggering ref, not the fresh commit, and reads the plugin's previous (already-released) version instead of the one just tagged |
 | `claude-code-version` | string | `latest` | npm version spec for `@anthropic-ai/claude-code` |
 
