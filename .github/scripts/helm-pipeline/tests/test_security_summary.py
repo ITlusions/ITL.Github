@@ -107,6 +107,99 @@ class SecuritySummaryTest(unittest.TestCase):
         self.assertIn('| requests | 2.0.0 | PYSEC-1 | 2.31.0 |', summary)
         self.assertNotIn('urllib3', summary)
 
+    def write_layout_fixture(self):
+        """Create a chart with one failing control, one active and one expired exclusion."""
+        output = self.root / 'dist' / 'security' / 'my-chart'
+        self.write_json(output / 'kubescape.json', {'summaryDetails': {'controls': {
+            'C-0270': {'name': 'Resource limits', 'status': {'status': 'failed'},
+                       'ResourceCounters': {'failedResources': 2}}}}})
+        exceptions = self.root / 'charts' / 'my-chart' / 'exceptions.yaml'
+        exceptions.parent.mkdir(parents=True, exist_ok=True)
+        exceptions.write_text(
+            'kubescape:\n'
+            '  - name: Allowed root\n'
+            '    posturePolicies:\n'
+            '      - controlID: C-0007\n'
+            '    owner: team-a\n'
+            '    expires: 2099-01-01\n'
+            '    request: REQ-1\n'
+            'trivy:\n'
+            '  misconfig:\n'
+            '    - id: KSV-0014\n'
+            '      statement: Old reason\n'
+            '      owner: team-b\n'
+            '      expires: 2000-01-01\n'
+            '      request: REQ-2\n', encoding='utf-8')
+
+    def summary_for(self, layout):
+        """Return a summary writer that uses the given layout."""
+        return SecuritySummary(GitHubFiles(), self.root, layout)
+
+    def test_that_classic_layout_is_the_default_and_lists_only_failing_controls(self):
+        """Test that the default layout keeps the failing controls table and does not list exclusions."""
+        self.write_layout_fixture()
+
+        self.summary.write('chart', 'my-chart')
+
+        summary = self.read_summary()
+        self.assertIn('### Kubescape failing controls', summary)
+        self.assertIn('| C-0270 | Resource limits | 2 |', summary)
+        self.assertNotIn('### Findings', summary)
+
+    def test_that_flat_layout_lists_every_finding_with_status_owner_and_request(self):
+        """Test that the flat layout shows blocking, excluded and expired findings in one table."""
+        self.write_layout_fixture()
+
+        self.summary_for('flat').write('chart', 'my-chart')
+
+        summary = self.read_summary()
+        self.assertIn('### Findings: my-chart', summary)
+        self.assertIn('| kubescape | C-0270 | Resource limits | 2 | blocking | - | - | - |', summary)
+        self.assertIn('| kubescape | C-0007 | Allowed root | - | excluded | team-a | 2099-01-01 | REQ-1 |', summary)
+        self.assertIn('| trivy | KSV-0014 | Old reason | - | expired | team-b | 2000-01-01 | REQ-2 |', summary)
+
+    def test_that_sections_layout_separates_blocking_excluded_and_expired_findings(self):
+        """Test that the sections layout writes one table per status."""
+        self.write_layout_fixture()
+
+        self.summary_for('sections').write('chart', 'my-chart')
+
+        summary = self.read_summary()
+        self.assertIn('### Blocking findings: my-chart', summary)
+        self.assertIn('### Excluded findings: my-chart', summary)
+        self.assertIn('### Expired exclusions: my-chart', summary)
+        self.assertIn('| kubescape | C-0007 | Allowed root | - | excluded | team-a | 2099-01-01 | REQ-1 |', summary)
+
+    def test_that_counts_layout_shows_how_many_findings_have_each_status(self):
+        """Test that the counts layout shows one count per status and lists only the blocking findings."""
+        self.write_layout_fixture()
+
+        self.summary_for('counts').write('chart', 'my-chart')
+
+        summary = self.read_summary()
+        self.assertIn('| blocking | 1 |', summary)
+        self.assertIn('| excluded | 1 |', summary)
+        self.assertIn('| expired | 1 |', summary)
+        self.assertIn('### Blocking findings: my-chart', summary)
+        self.assertNotIn('| C-0007 |', summary)
+
+    def test_that_expiry_layout_sorts_exclusions_by_expiry_date_with_days_left(self):
+        """Test that the expiry layout lists the earliest expiring exclusion first and counts days left."""
+        self.write_layout_fixture()
+
+        self.summary_for('expiry').write('chart', 'my-chart')
+
+        summary = self.read_summary()
+        self.assertIn('### Exclusions by expiry: my-chart', summary)
+        self.assertIn('| 2000-01-01 |', summary)
+        self.assertLess(summary.index('| 2000-01-01 |'), summary.index('| 2099-01-01 |'))
+        self.assertIn('| Expires | Days left | Scanner | ID | Owner | Request | Status |', summary)
+
+    def test_that_unknown_layout_name_is_rejected(self):
+        """Test that a layout name that is not one of the five layouts fails before anything is written."""
+        with self.assertRaises(ValueError):
+            SecuritySummary(GitHubFiles(), self.root, 'fancy')
+
     def test_that_steps_without_summary_write_nothing(self):
         """Test that the setup and repository steps do not write a job summary."""
         self.summary.write('setup-tools')

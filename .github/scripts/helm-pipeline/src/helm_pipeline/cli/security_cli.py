@@ -11,6 +11,7 @@ from helm_pipeline.core.logging_config import configure_logging
 from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.pipeline import SecurityPipeline
 from helm_pipeline.security.summary import KUBESCAPE_REPORT, SecuritySummary
+from helm_pipeline.security.summary_layouts import DEFAULT_LAYOUT
 from helm_pipeline.security.tools import SecurityToolInstaller
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
@@ -47,7 +48,8 @@ class SecurityCli:
         if args.command == 'chart' and not args.chart:
             parser.error('chart or CHART is required')
         pipeline = SecurityPipeline(Path.cwd())
-        summary = SecuritySummary(pipeline.github, pipeline.root)
+        summary = SecuritySummary(pipeline.github, pipeline.root,
+                                  os.environ.get('SECURITY_SUMMARY_LAYOUT', DEFAULT_LAYOUT))
         try:
             self.dispatch(args, pipeline)
         except subprocess.CalledProcessError as error:

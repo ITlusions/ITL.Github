@@ -62,6 +62,7 @@ class ChartScanner:
             return
         output = self.root / 'dist' / 'security' / name
         output.mkdir(parents=True, exist_ok=True)
+        self.exceptions.log(name)
         scan_report = ScanReport(output)
         scan_report.clear()
         manifest = self.renderer.render(chart)
@@ -77,7 +78,6 @@ class ChartScanner:
         """Run the Trivy configuration scan, honoring the chart's Trivy exception file."""
         trivy_ignorefile = self.exceptions.trivy_ignorefile(name, output)
         if trivy_ignorefile:
-            self.exceptions.log(name)
             self.report_excluded(name, output, manifest)
         try:
             self.trivy.config_scan(scan_report, manifest, output, trivy_ignorefile)
