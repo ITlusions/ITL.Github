@@ -252,8 +252,10 @@ jobs:
       - name: Create and push tag
         env:
           TAG: ${{ needs.publish.outputs.tag }}
+          GH_TOKEN: ${{ secrets.gh-pat || github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$TAG"
           git push origin "$TAG"
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
