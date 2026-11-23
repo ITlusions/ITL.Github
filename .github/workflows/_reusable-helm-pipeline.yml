@@ -12,11 +12,11 @@ on:
       default-kube-version:
         description: Kubernetes version for push and pull request runs
         type: string
-        default: "1.37.1"
+        default: "1.36.4"
       scheduled-kube-versions:
         description: JSON array of Kubernetes versions used when full-scan is true
         type: string
-        default: '["1.36.5","1.37.1"]'
+        default: '["1.36.4"]'
       profiles:
         description: JSON array of objects with name and values (path relative to the chart)
         type: string
@@ -35,6 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       charts: ${{ steps.names.outputs.charts }}
+      security-charts: ${{ steps.security.outputs.security-charts }}
       kube-versions: ${{ steps.kube.outputs.kube-versions }}
     steps:
       - name: Check out repository
@@ -59,8 +60,10 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           PUSH_BEFORE: ${{ github.event.before }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REF: ${{ github.base_ref }}
           FULL_SCAN: ${{ inputs.full-scan && '1' || '0' }}
           CHART: ${{ inputs.chart }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if [ -n "$CHART" ]; then
             [ -d "charts/$CHART" ] || { echo "charts/$CHART not found" >&2; exit 1; }
@@ -69,12 +72,14 @@ jobs:
           fi
           if [ "$FULL_SCAN" = "1" ]; then
             chart-pipeline changed --all
-          elif [ "$EVENT_NAME" = "push" ] && [ "$REF_NAME" = "develop" ]; then
+          elif [ "$EVENT_NAME" = "push" ] && { [ "$REF_NAME" = "develop" ] || [ "$REF_NAME" = "main" ] || [ "$REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
             chart-pipeline changed --base "$PUSH_BEFORE"
           elif [ "$EVENT_NAME" = "pull_request" ]; then
-            chart-pipeline changed --base "$(git merge-base origin/develop "$PR_HEAD_SHA")" --develop origin/develop
+            chart-pipeline changed --base "$(git merge-base "origin/$PR_BASE_REF" "$PR_HEAD_SHA")" --develop "origin/$PR_BASE_REF"
           else
-            chart-pipeline changed --base "$(git merge-base origin/develop HEAD)"
+            base=develop
+            git rev-parse --verify -q origin/develop >/dev/null || base="$DEFAULT_BRANCH"
+            chart-pipeline changed --base "$(git merge-base "origin/$base" HEAD)"
           fi
 
       - name: Convert to chart names
@@ -83,6 +88,12 @@ jobs:
           AFFECTED: ${{ steps.select.outputs.affected }}
         run: |
           python -c "import json, os; names = [chart.split('/')[-1] for chart in json.loads(os.environ['AFFECTED'])]; print('charts=' + json.dumps(names, separators=(',', ':')))" >> "$GITHUB_OUTPUT"
+
+      - name: Select charts with security scans
+        id: security
+        env:
+          AFFECTED: ${{ steps.select.outputs.affected }}
+        run: chart-pipeline security-charts
 
       - name: Select Kubernetes versions
         id: kube
@@ -119,13 +130,40 @@ jobs:
   chart-security:
     name: Security ${{ matrix.chart }}
     needs: discover
-    if: needs.discover.outputs.charts != '[]'
+    if: needs.discover.outputs.security-charts != '[]'
     strategy:
       fail-fast: false
       matrix:
-        chart: ${{ fromJSON(needs.discover.outputs.charts) }}
+        chart: ${{ fromJSON(needs.discover.outputs.security-charts) }}
     uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-security.yml@main
     with:
       chart: ${{ matrix.chart }}
     permissions:
       contents: read
+
+  repository-secrets:
+    name: Secret scan (repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install CI requirements
+        run: |
+          python -m pip install -r requirements-ci.txt
+          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+
+      - name: Install gitleaks
+        run: security-scan setup-tools --directory dist/tools --tool gitleaks
+
+      - name: Scan git history for secrets
+        run: security-scan secrets
