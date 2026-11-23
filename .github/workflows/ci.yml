@@ -64,6 +64,7 @@ jobs:
       tag: ${{ needs.auto-tag.outputs.tag }}
     permissions:
       contents: write
+      actions: read
 
   # ---------------------------------------------------------------------------
   # 2c. Tag and release non-main branches — existing tags are never moved
