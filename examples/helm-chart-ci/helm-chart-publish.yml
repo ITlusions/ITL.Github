@@ -1,0 +1,74 @@
+name: Helm Publish
+
+# ---------------------------------------------------------------------------
+# Example caller: after Helm Chart CI succeeds on main, publishes every chart changed
+# in the promoted commit and creates its chart/<name>/v<version> release tag. Calls
+# the reusable publish workflow once per changed chart.
+#
+# Decision: only charts directly changed in the push are published. A dependent of a
+# changed chart is not republished automatically. Its owner must bump its patch version,
+# run helm dependency update, and commit the new Chart.lock. The Helm Chart CI blocks
+# a stale Chart.lock, so a dependent cannot publish with an outdated vendored dependency.
+# ---------------------------------------------------------------------------
+on:
+  workflow_run:
+    workflows:
+      - "Helm Chart CI"
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Detect changed charts
+    runs-on: ubuntu-latest
+    outputs:
+      charts: ${{ steps.changed.outputs.charts }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install chart-pipeline
+        run: python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+
+      - name: Find changed charts
+        id: changed
+        run: chart-pipeline changed --base HEAD~1
+
+  publish:
+    name: Publish ${{ matrix.chart }}
+    needs: detect
+    if: needs.detect.outputs.charts != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJSON(needs.detect.outputs.charts) }}
+    uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-publish.yml@main
+    with:
+      commit-sha: ${{ github.event.workflow_run.head_sha }}
+      chart-path: ${{ matrix.chart }}
+      environment: "production"
+      ci-workflow-name: "Helm Chart CI"
+      artifact-name: helm-chart-${{ matrix.chart }}-basic-1.36.4
+    secrets: inherit
+    permissions:
+      contents: write
+      actions: read
+      packages: write

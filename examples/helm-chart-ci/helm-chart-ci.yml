@@ -1,0 +1,50 @@
+name: Helm Chart CI
+
+# ---------------------------------------------------------------------------
+# Example caller modelled on spotinfo-helm-charts: tests the charts changed since the
+# branch point (plus charts that depend on them) with the reusable Helm CI.
+#
+# Changes are detected with chart-pipeline changed. The weekly schedule and
+# workflow_dispatch with full-scan test every non-ignored chart.
+# ---------------------------------------------------------------------------
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+  pull_request:
+    branches:
+      - develop
+      - main
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      full-scan:
+        description: Test every non-ignored chart instead of only the changed ones
+        type: boolean
+        default: false
+      chart:
+        description: Test only this chart directory under charts/ (leave empty for change detection)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+# Keyed on SHA so push and pull_request runs for one commit dedupe, while every commit is tested.
+concurrency:
+  group: helm-ci-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  pipeline:
+    uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-pipeline.yml@main
+    with:
+      full-scan: ${{ github.event_name == 'schedule' || inputs.full-scan == true }}
+      chart: ${{ inputs.chart || '' }}
+      default-kube-version: "1.36.4"
+      scheduled-kube-versions: '["1.36.4"]'
+    permissions:
+      contents: read

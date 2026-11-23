@@ -61,7 +61,7 @@ $skippedLinks = 0
 $linkPattern = '\[([^\]]+)\]\(([^)]+)\)'
 
 foreach ($mdFile in $mdFiles) {
-    $relativePath = $mdFile.FullName.Replace($RepoRoot, '').TrimStart('\', '/')
+    $relativePath = $mdFile.FullName.Replace($RepoRoot, '').TrimStart('\', '/').Replace('\', '/')
     $content = Get-Content -Path $mdFile.FullName -Raw -ErrorAction SilentlyContinue
     
     if (-not $content) { continue }
@@ -71,11 +71,11 @@ foreach ($mdFile in $mdFiles) {
         $lineNumber++
         
         # Find all links in this line
-        $matches = [regex]::Matches($line, $linkPattern)
+        $linkMatches = [regex]::Matches($line, $linkPattern)
         
-        foreach ($match in $matches) {
-            $linkText = $match.Groups[1].Value
-            $linkUrl = $match.Groups[2].Value
+        foreach ($linkMatch in $linkMatches) {
+            $linkText = $linkMatch.Groups[1].Value
+            $linkUrl = $linkMatch.Groups[2].Value
             
             # Skip external URLs
             if ($linkUrl -match '^https?://' -or $linkUrl -match '^mailto:') {
@@ -111,6 +111,9 @@ foreach ($mdFile in $mdFiles) {
                     ResolvedTo = $resolvedPath
                     Status     = 'DEAD'
                 }
+                if ($env:GITHUB_ACTIONS -eq 'true') {
+                    Write-Host "::warning file=$relativePath,line=$lineNumber::Deadlink: $linkUrl"
+                }
             }
         }
     }
@@ -137,7 +140,7 @@ if ($deadlinks.Count -gt 0) {
                 @{ Label = 'Line'; Expression = { $_.Line } }
                 @{ Label = 'Link'; Expression = { $_.LinkText } }
                 @{ Label = 'Target'; Expression = { $_.LinkUrl } }
-            ) -AutoSize
+            ) -AutoSize | Out-String | Write-Host
         }
         'list' {
             Write-Host "Deadlinks Found:" -ForegroundColor Red
@@ -169,6 +172,7 @@ if ($deadlinks.Count -gt 0) {
         Write-Host "❌ Pipeline would fail due to deadlinks" -ForegroundColor Red
         exit 1
     }
+    Write-Host "⚠️  $($deadlinks.Count) deadlink(s) reported as warnings" -ForegroundColor Yellow
 } else {
     Write-Host "✅ No deadlinks found!" -ForegroundColor Green
     exit 0

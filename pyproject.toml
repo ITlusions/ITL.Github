@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "helm-ci"
+version = "0.1.0"
+description = "CI tooling for SpotINFO Helm chart validation and security scanning"
+requires-python = ">=3.10"
+dependencies = ["PyYAML"]
+
+[project.scripts]
+chart-pipeline = "helm_pipeline.cli.chart_cli:main"
+security-scan = "helm_pipeline.cli.security_cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = [".github/scripts/helm-pipeline/src/helm_pipeline"]

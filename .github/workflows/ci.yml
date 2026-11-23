@@ -23,8 +23,9 @@ on:
       - main
   workflow_dispatch:
 
+# Keyed on SHA so push and pull_request runs for one commit dedupe, while every commit is tested.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +40,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.3.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install yamllint
         run: pip install yamllint
@@ -72,11 +73,11 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.3.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Scan for deadlinks
         run: |
-          pwsh .github/scripts/check-md-deadlinks.ps1 -FailOnDeadlinks
+          python3 .github/scripts/check-md-deadlinks.py --output-format list
 
   # ---------------------------------------------------------------------------
   # 2. Auto-tag (patch bump) — main only
@@ -103,7 +104,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.3.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
