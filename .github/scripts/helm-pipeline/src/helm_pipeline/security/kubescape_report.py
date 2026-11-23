@@ -36,7 +36,8 @@ class KubescapeReport:
             if isinstance(status, dict):
                 status = status.get('status')
             if status == FAILED_STATUS:
-                counters = control.get('resourceCounters') or {}
+                # Kubescape writes this key with a capital R.
+                counters = control.get('ResourceCounters') or {}
                 failing.append({
                     'id': control_id,
                     'name': control.get('name', ''),
