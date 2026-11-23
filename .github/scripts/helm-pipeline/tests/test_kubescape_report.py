@@ -38,6 +38,18 @@ class KubescapeReportTest(unittest.TestCase):
             {'id': 'C-0270', 'name': 'Resource limits', 'resources': 2},
         ], controls)
 
+    def test_that_plain_string_status_is_read_as_failed(self):
+        """Test that a control whose status is a plain string is read the same as a status object."""
+        self.report.write_text(json.dumps({'summaryDetails': {'controls': {
+            'C-0270': {'name': 'Resource limits', 'status': 'failed',
+                       'resourceCounters': {'failedResources': 3}},
+            'C-0001': {'name': 'Forbidden container', 'status': 'passed'},
+        }}}), encoding='utf-8')
+
+        controls = KubescapeReport(self.report).failing_controls()
+
+        self.assertEqual([{'id': 'C-0270', 'name': 'Resource limits', 'resources': 3}], controls)
+
     def test_that_missing_report_has_no_failing_controls(self):
         """Test that a missing report returns an empty list instead of failing the summary."""
         self.assertEqual([], KubescapeReport(self.report).failing_controls())
