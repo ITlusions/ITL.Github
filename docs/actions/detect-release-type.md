@@ -41,7 +41,7 @@ steps:
 
 ## Notes
 
-- This action is used internally by [`_reusable-publish-pypi.yml`](../workflows/publish-pypi.md)
+- This action is used internally by [`_managed-publish-pypi.yml`](../workflows/publish-pypi.md)
   to route to PyPI vs TestPyPI.
 - The version input should not include the `v` prefix.
   Strip it with `${TAG#v}` if needed.

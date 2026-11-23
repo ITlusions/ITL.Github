@@ -519,13 +519,13 @@
       <p class="section-sub">
         Call any workflow from your repo with
         <code>uses: ITlusions/ITL.Github/.github/workflows/&lt;name&gt;.yml@main</code>
-        — <strong>new generation</strong> workflows (<code>_reusable-python-ci.yml</code>, <code>_reusable-python-publish.yml</code>) are recommended for Python projects; legacy versions also available.
+        — <strong>new generation</strong> workflows (<code>_managed-python-ci.yml</code>, <code>_managed-python-publish.yml</code>) are recommended for Python projects; legacy versions also available.
       </p>
 
       <div class="workflows-grid">
 
         <a class="workflow-card" href="workflows/detect-version">
-          <div class="wf-filename">_reusable-detect-version.yml</div>
+          <div class="wf-filename">_managed-detect-version.yml</div>
           <div class="wf-title">Detect Version</div>
           <div class="wf-desc">Resolves a semver version from the current branch and git tags. Outputs a raw semver, a Docker-safe image tag, and a PEP 440 version for Python wheels.</div>
           <div class="wf-tags">
@@ -537,7 +537,7 @@
         </a>
 
         <a class="workflow-card" href="workflows/reusable-python-ci">
-          <div class="wf-filename">_reusable-python-ci.yml</div>
+          <div class="wf-filename">_managed-python-ci.yml</div>
           <div class="wf-title">Python CI <span style="font-size:0.7rem;background:var(--success);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">NEW</span></div>
           <div class="wf-desc"><strong>Recommended.</strong> Lint (ruff) → test (pytest) → build wheel with setuptools-scm version detection. Auto-detects version from git tags. Simpler than legacy CI — Python.</div>
           <div class="wf-tags">
@@ -549,7 +549,7 @@
         </a>
 
         <a class="workflow-card" href="workflows/reusable-python-publish">
-          <div class="wf-filename">_reusable-python-publish.yml</div>
+          <div class="wf-filename">_managed-python-publish.yml</div>
           <div class="wf-title">Python Publish <span style="font-size:0.7rem;background:var(--success);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">NEW</span></div>
           <div class="wf-desc"><strong>Recommended.</strong> Branch-aware publishing with SBOM (CycloneDX), build provenance attestation (Sigstore), and release artifact upload. Publishes to PyPI/TestPyPI via OIDC. Full supply chain security.</div>
           <div class="wf-tags">
@@ -561,9 +561,9 @@
         </a>
 
         <a class="workflow-card" href="workflows/ci-python">
-          <div class="wf-filename">_reusable-ci-python.yml</div>
+          <div class="wf-filename">_managed-ci-python.yml</div>
           <div class="wf-title">CI — Python <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span></div>
-          <div class="wf-desc">Lint (ruff) → test (pytest with PostgreSQL service) → build wheel. Requires manual version injection into <code>pyproject.toml</code>. Use <code>_reusable-python-ci.yml</code> instead for new projects.</div>
+          <div class="wf-desc">Lint (ruff) → test (pytest with PostgreSQL service) → build wheel. Requires manual version injection into <code>pyproject.toml</code>. Use <code>_managed-python-ci.yml</code> instead for new projects.</div>
           <div class="wf-tags">
             <span class="wf-tag">ruff</span>
             <span class="wf-tag">pytest</span>
@@ -573,7 +573,7 @@
         </a>
 
         <a class="workflow-card" href="workflows/ci-docker">
-          <div class="wf-filename">_reusable-ci-docker.yml</div>
+          <div class="wf-filename">_managed-ci-docker.yml</div>
           <div class="wf-title">CI — Docker</div>
           <div class="wf-desc">Lint → test → Docker build, with support for a multi-repo checkout (repo + dependency side-by-side). Optionally pushes the image on <code>main</code> and <code>develop</code>.</div>
           <div class="wf-tags">
@@ -585,7 +585,7 @@
         </a>
 
         <a class="workflow-card" href="workflows/auto-tag">
-          <div class="wf-filename">_reusable-auto-tag.yml</div>
+          <div class="wf-filename">_managed-auto-tag.yml</div>
           <div class="wf-title">Auto-tag</div>
           <div class="wf-desc">Reads the highest <code>v*</code> tag in the repo and pushes a patch bump tag (<code>v0.1.3 → v0.1.4</code>) to the given commit SHA. Runs on <code>main</code> only.</div>
           <div class="wf-tags">
@@ -596,7 +596,7 @@
         </a>
 
         <a class="workflow-card" href="workflows/docker-retag">
-          <div class="wf-filename">_reusable-docker-retag.yml</div>
+          <div class="wf-filename">_managed-docker-retag.yml</div>
           <div class="wf-title">Docker Retag</div>
           <div class="wf-desc">Promotes an existing image to a release tag using <code>docker buildx imagetools create</code> — a manifest-only operation. No rebuild, no digest mismatch between CI and production.</div>
           <div class="wf-tags">
@@ -607,9 +607,9 @@
         </a>
 
         <a class="workflow-card" href="workflows/publish-pypi">
-          <div class="wf-filename">_reusable-publish-pypi.yml</div>
+          <div class="wf-filename">_managed-publish-pypi.yml</div>
           <div class="wf-title">Publish PyPI <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span></div>
-          <div class="wf-desc">Downloads a pre-built wheel and publishes to PyPI/TestPyPI via OIDC Trusted Publishing. Basic publishing without supply chain security. Use <code>_reusable-python-publish.yml</code> instead for new projects (includes SBOM + attestation).</div>
+          <div class="wf-desc">Downloads a pre-built wheel and publishes to PyPI/TestPyPI via OIDC Trusted Publishing. Basic publishing without supply chain security. Use <code>_managed-python-publish.yml</code> instead for new projects (includes SBOM + attestation).</div>
           <div class="wf-tags">
             <span class="wf-tag">OIDC</span>
             <span class="wf-tag">twine</span>
@@ -619,9 +619,9 @@
         </a>
 
         <a class="workflow-card" href="workflows/docker-build">
-          <div class="wf-filename">_reusable-docker-build.yml</div>
+          <div class="wf-filename">_managed-docker-build.yml</div>
           <div class="wf-title">Docker Build</div>
-          <div class="wf-desc">Builds a Docker image and optionally pushes to registry. Supports multi-platform builds via <code>docker buildx</code>. Suitable as an alternative to or alongside <code>_reusable-ci-docker.yml</code>.</div>
+          <div class="wf-desc">Builds a Docker image and optionally pushes to registry. Supports multi-platform builds via <code>docker buildx</code>. Suitable as an alternative to or alongside <code>_managed-ci-docker.yml</code>.</div>
           <div class="wf-tags">
             <span class="wf-tag">docker buildx</span>
             <span class="wf-tag">multi-platform</span>
@@ -630,7 +630,7 @@
         </a>
 
         <a class="workflow-card" href="workflows/release-gh">
-          <div class="wf-filename">_reusable-release-gh.yml</div>
+          <div class="wf-filename">_managed-release-gh.yml</div>
           <div class="wf-title">GitHub Release</div>
           <div class="wf-desc">Creates a GitHub Release for a given tag, auto-detects stable vs pre-release from the tag name, and optionally attaches a build artifact as a release asset.</div>
           <div class="wf-tags">

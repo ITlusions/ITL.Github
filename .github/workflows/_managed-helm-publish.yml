@@ -12,7 +12,7 @@ name: Helm Publish — OCI (reusable)
 # Usage:
 #   jobs:
 #     publish:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-publish.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-publish.yml@main
 #       with:
 #         commit-sha: ${{ github.sha }}
 #         chart-path: "charts/myapp"

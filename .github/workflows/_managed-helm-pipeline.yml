@@ -118,7 +118,7 @@ jobs:
         chart: ${{ fromJSON(needs.discover.outputs.charts) }}
         profile: ${{ fromJSON(inputs.profiles) }}
         kube-version: ${{ fromJSON(needs.discover.outputs.kube-versions) }}
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-ci.yml@main
     with:
       chart-path: charts/${{ matrix.chart }}
       values-files: charts/${{ matrix.chart }}/${{ matrix.profile.values }}
@@ -135,7 +135,7 @@ jobs:
       fail-fast: false
       matrix:
         chart: ${{ fromJSON(needs.discover.outputs.security-charts) }}
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-security.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-security.yml@main
     with:
       chart: ${{ matrix.chart }}
     permissions:

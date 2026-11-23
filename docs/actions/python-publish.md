@@ -20,7 +20,7 @@ Composite action for building, attesting, and publishing Python packages to PyPI
 - Consistent build → attest → publish → release flow
 
 ❌ **Don't use for:**
-- Shared workflows across many repos (use `_reusable-python-publish.yml` instead)
+- Shared workflows across many repos (use `_managed-python-publish.yml` instead)
 - Non-Python projects
 - Projects without GitHub Releases
 
@@ -324,7 +324,7 @@ on:
 
 jobs:
   ci:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-ci.yml@v0.2.5
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-ci.yml@v0.2.5
 
   publish:
     needs: ci

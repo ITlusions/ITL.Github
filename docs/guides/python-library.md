@@ -56,11 +56,11 @@ concurrency:
 
 jobs:
   detect-version:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
 
   ci:
     needs: detect-version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
     with:
       python-version: "3.12"
       artifact-name: "myproject-wheel"
@@ -81,7 +81,7 @@ jobs:
         github.ref == 'refs/heads/main' ||
         startsWith(github.ref, 'refs/heads/release/')
       )
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
     with:
       commit-sha: ${{ github.sha }}
     secrets:
@@ -95,7 +95,7 @@ jobs:
         github.ref == 'refs/heads/main' ||
         startsWith(github.ref, 'refs/heads/release/')
       )
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-release-gh.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-release-gh.yml@main
     with:
       tag: ${{ needs.auto-tag.outputs.tag }}
       artifact-name: "myproject-wheel"
@@ -133,7 +133,7 @@ jobs:
 
   publish:
     needs: resolve-target
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-publish-pypi.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-publish-pypi.yml@main
     with:
       artifact-name: "myproject-wheel"
       commit-sha: ${{ github.event.release.target_commitish }}

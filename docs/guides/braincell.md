@@ -17,26 +17,26 @@ Source: [ITlusions/ITL.BrainCell](https://github.com/ITlusions/ITL.BrainCell)
 push / PR
     │
     ├── detect-version                      (all branches)
-    │       _reusable-detect-version.yml
+    │       _managed-detect-version.yml
     │
     ├── ci                                  (all branches)
-    │       _reusable-ci-python.yml
+    │       _managed-ci-python.yml
     │       lint (ruff) → test (pytest + postgres) → build wheel → upload artifact
     │
     ├── auto-tag                            (main + release/** only)
-    │       _reusable-auto-tag.yml
+    │       _managed-auto-tag.yml
     │       main:     v1.4.2 → v1.4.3
     │       release/: v1.5.0-rc.1 → v1.5.0-rc.2
     │
     └── create-release                      (main + release/** only)
-            _reusable-release-gh.yml
+            _managed-release-gh.yml
             creates GitHub Release → attaches wheel
                         │
                         └── release: published event
                                     │
                               publish.yml
                                     │
-                              _reusable-publish-pypi.yml
+                              _managed-publish-pypi.yml
                               PyPI (stable) / TestPyPI (rc/beta/alpha)
 ```
 
@@ -88,14 +88,14 @@ jobs:
   # ── Step 1: Resolve SemVer from git history / branch name ─────────────────
   detect-version:
     name: Detect version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
     # outputs: version, image-tag, python-version, is-release
 
   # ── Step 2: Lint → Test (+ Postgres) → Build wheel ────────────────────────
   ci:
     name: Lint / Test / Build
     needs: detect-version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
     with:
       python-version: "3.12"
       ref: ${{ github.sha }}
@@ -119,7 +119,7 @@ jobs:
         github.ref == 'refs/heads/main' ||
         startsWith(github.ref, 'refs/heads/release/')
       )
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
     with:
       commit-sha: ${{ github.sha }}
     secrets:
@@ -140,7 +140,7 @@ jobs:
         github.ref == 'refs/heads/main' ||
         startsWith(github.ref, 'refs/heads/release/')
       )
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-release-gh.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-release-gh.yml@main
     with:
       tag: ${{ needs.auto-tag.outputs.tag }}
       artifact-name: "braincell-wheel"
@@ -195,7 +195,7 @@ jobs:
   publish:
     name: Publish to PyPI
     needs: resolve-target
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-publish-pypi.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-publish-pypi.yml@main
     with:
       artifact-name: "braincell-wheel"
       commit-sha: ${{ github.event.release.target_commitish }}
@@ -209,7 +209,7 @@ jobs:
 
 ### No-rebuild contract
 
-The wheel is built exactly once in `ci.yml` and uploaded as artifact `braincell-wheel`. `publish.yml` locates the CI run by `commit-sha` and downloads the same artifact. The `_reusable-publish-pypi.yml` workflow does not call `pip wheel` or `hatch build` — it calls `twine upload` on the downloaded file.
+The wheel is built exactly once in `ci.yml` and uploaded as artifact `braincell-wheel`. `publish.yml` locates the CI run by `commit-sha` and downloads the same artifact. The `_managed-publish-pypi.yml` workflow does not call `pip wheel` or `hatch build` — it calls `twine upload` on the downloaded file.
 
 This guarantees that the bytes published to PyPI are bit-for-bit identical to the bytes tested in CI.
 
@@ -232,7 +232,7 @@ Required PyPI configuration:
 
 ### Integration test exclusion
 
-The `test-markers-exclude: "integration"` input to `_reusable-ci-python.yml` excludes tests marked with `@pytest.mark.integration` from the standard CI run. This keeps the CI loop fast. Integration tests are run separately in a dedicated workflow or locally via `run_tests.ps1 -TestType integration`.
+The `test-markers-exclude: "integration"` input to `_managed-ci-python.yml` excludes tests marked with `@pytest.mark.integration` from the standard CI run. This keeps the CI loop fast. Integration tests are run separately in a dedicated workflow or locally via `run_tests.ps1 -TestType integration`.
 
 ---
 

@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   pipeline:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-pipeline.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-pipeline.yml@main
     with:
       full-scan: ${{ github.event_name == 'schedule' || inputs.full-scan == true }}
       chart: ${{ inputs.chart || '' }}

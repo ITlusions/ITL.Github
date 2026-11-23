@@ -6,7 +6,7 @@ name: GitHub Release (reusable)
 # Usage:
 #   jobs:
 #     release:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-release-gh.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-release-gh.yml@main
 #       with:
 #         tag: "v1.2.3"
 #         artifact-name: "myproject-wheel"
@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: ""
+      prerelease:
+        description: "Mark the release as a prerelease regardless of the tag format"
+        required: false
+        type: boolean
+        default: false
       generate-release-notes:
         description: "Auto-generate release notes from commits"
         required: false
@@ -74,7 +79,7 @@ jobs:
           TAG="${{ inputs.tag }}"
           VERSION="${TAG#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          if echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.';
+          if [ "${{ inputs.prerelease }}" = "true" ] || echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.';
           then
             echo "prerelease=true" >> $GITHUB_OUTPUT
           else

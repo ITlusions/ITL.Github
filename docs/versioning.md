@@ -5,7 +5,7 @@
 All workflows and actions in this repo are referenced with `@main`:
 
 ```yaml
-uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
 ```
 
 **This is the recommended approach** for all ITLusions repositories because:
@@ -22,7 +22,7 @@ If you need stability guarantees (e.g. compliance requirements, regulated enviro
 pin to a specific commit SHA instead:
 
 ```yaml
-uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@a1b2c3d
+uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@a1b2c3d
 ```
 
 To find the current SHA:

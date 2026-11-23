@@ -12,8 +12,8 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 
 | Workflow | File | Purpose |
 |---|---|---|
-| [Python CI](reusable-python-ci.md) | `_reusable-python-ci.yml` | Test + lint + build Python wheels (setuptools-scm version detection) |
-| [Python Publish](reusable-python-publish.md) | `_reusable-python-publish.yml` | Smart PyPI/TestPyPI publishing (branch-aware + OIDC auth + SBOM + attestation) |
+| [Python CI](reusable-python-ci.md) | `_managed-python-ci.yml` | Test + lint + build Python wheels (setuptools-scm version detection) |
+| [Python Publish](reusable-python-publish.md) | `_managed-python-publish.yml` | Smart PyPI/TestPyPI publishing (branch-aware + OIDC auth + SBOM + attestation) |
 
 **Alternative**: Use [`actions/python-publish`](../actions/python-publish.md) composite action in your own workflow for full Trusted Publisher support.
 
@@ -21,13 +21,13 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 
 | Workflow | File | Purpose |
 |---|---|---|
-| [Detect Version](detect-version.md) | `_reusable-detect-version.yml` | Determine a semver version from branch name and git tags |
-| [CI — Python](ci-python.md) | `_reusable-ci-python.yml` | Lint (ruff) + test (pytest + PostgreSQL) + wheel build |
-| [CI — Docker](ci-docker.md) | `_reusable-ci-docker.yml` | Lint + test + Docker build (+ optional push) |
-| [Auto-tag](auto-tag.md) | `_reusable-auto-tag.yml` | Push a semver patch bump tag to the repo |
-| [Docker Retag](docker-retag.md) | `_reusable-docker-retag.yml` | Promote an image by retagging without rebuilding |
-| [Publish PyPI](publish-pypi.md) | `_reusable-publish-pypi.yml` | Publish a wheel to PyPI or TestPyPI via OIDC |
-| [GitHub Release](release-gh.md) | `_reusable-release-gh.yml` | Create a GitHub Release with optional artifact assets |
+| [Detect Version](detect-version.md) | `_managed-detect-version.yml` | Determine a semver version from branch name and git tags |
+| [CI — Python](ci-python.md) | `_managed-ci-python.yml` | Lint (ruff) + test (pytest + PostgreSQL) + wheel build |
+| [CI — Docker](ci-docker.md) | `_managed-ci-docker.yml` | Lint + test + Docker build (+ optional push) |
+| [Auto-tag](auto-tag.md) | `_managed-auto-tag.yml` | Push a semver patch bump tag to the repo |
+| [Docker Retag](docker-retag.md) | `_managed-docker-retag.yml` | Promote an image by retagging without rebuilding |
+| [Publish PyPI](publish-pypi.md) | `_managed-publish-pypi.yml` | Publish a wheel to PyPI or TestPyPI via OIDC |
+| [GitHub Release](release-gh.md) | `_managed-release-gh.yml` | Create a GitHub Release with optional artifact assets |
 
 ## Typical Job Order
 
@@ -35,9 +35,9 @@ uses: ITlusions/ITL.Github/.github/workflows/<filename>@main
 
 ```mermaid
 flowchart LR
-    A[Push to feature/**] --> B["CI: test + lint + build<br/>(_reusable-python-ci.yml)"] --> C["Auto-publish to TestPyPI<br/>(_reusable-python-publish.yml)"]
+    A[Push to feature/**] --> B["CI: test + lint + build<br/>(_managed-python-ci.yml)"] --> C["Auto-publish to TestPyPI<br/>(_managed-python-publish.yml)"]
     D[Push to hotfix/**] --> E["CI: test + lint + build"] --> F["Auto-publish to PyPI"]
-    G["Create GitHub Release<br/>(prerelease: false)"] --> H["Auto-publish to PyPI<br/>(_reusable-python-publish.yml)"]
+    G["Create GitHub Release<br/>(prerelease: false)"] --> H["Auto-publish to PyPI<br/>(_managed-python-publish.yml)"]
 ```
 
 **Key advantages:**

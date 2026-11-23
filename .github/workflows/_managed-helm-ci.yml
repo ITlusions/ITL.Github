@@ -9,7 +9,7 @@ name: Helm CI — Chart (reusable)
 # Usage:
 #   jobs:
 #     helm-ci:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-ci.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-ci.yml@main
 #       with:
 #         chart-path: "charts/myapp"
 #         values-files: |

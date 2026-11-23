@@ -1,0 +1,130 @@
+name: Auto-tag semver patch (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: determine the next version from the latest GitHub release (the release creates the tag)
+#
+# Version rules:
+#   - Latest release (X.Y.Z) is the source; the patch is bumped.
+#   - No release, or baseversion in .metadata.json is higher than the release: start at baseversion.
+#
+# Usage:
+#   jobs:
+#     auto-tag:
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      tag-prefix:
+        description: "Tag prefix, e.g. 'v'"
+        required: false
+        type: string
+        default: "v"
+      metadata-file:
+        description: "JSON file with a 'baseversion' (X.Y.Z); defaults to 0.1.0 when the file is absent"
+        required: false
+        type: string
+        default: ".metadata.json"
+      prerelease:
+        description: "Branch build: no patch bump, appends -<branch>.<run>+<sha7>"
+        required: false
+        type: boolean
+        default: false
+
+    outputs:
+      tag:
+        description: "Tag for the new version, e.g. v0.1.1"
+        value: ${{ jobs.auto-tag.outputs.tag }}
+      version:
+        description: "Version without prefix, e.g. 0.1.1"
+        value: ${{ jobs.auto-tag.outputs.version }}
+
+jobs:
+  auto-tag:
+    name: Determine next version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.next-version.outputs.tag }}
+      version: ${{ steps.next-version.outputs.version }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Determine next version
+        id: next-version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREFIX: ${{ inputs.tag-prefix }}
+          METADATA_FILE: ${{ inputs.metadata-file }}
+          BUMP: ${{ !inputs.prerelease }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          # Base version floor; defaults to 0.1.0 when the metadata file is absent
+          if [ -f "$METADATA_FILE" ]; then
+            BASE=$(jq -er '.baseversion' "$METADATA_FILE")
+          else
+            BASE="0.1.0"
+          fi
+          if [[ ! "$BASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::baseversion '$BASE' in $METADATA_FILE is not X.Y.Z"
+            exit 1
+          fi
+
+          # Latest published release (pre-releases and drafts are excluded by GitHub)
+          if RELEASE_TAG=$(gh release view --json tagName --jq .tagName 2>/tmp/gh-release.err); then
+            RELEASE="${RELEASE_TAG#"$PREFIX"}"
+            echo "Latest release: $RELEASE_TAG"
+          elif grep -qiE "no releases found|not found" /tmp/gh-release.err; then
+            RELEASE=""
+            echo "No release found"
+          else
+            cat /tmp/gh-release.err
+            exit 1
+          fi
+
+          if [ -n "$RELEASE" ] && [[ ! "$RELEASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::latest release '$RELEASE_TAG' is not a stable X.Y.Z version"
+            exit 1
+          fi
+
+          # Highest of the base version and the latest release
+          HIGHEST="$BASE"
+          if [ -n "$RELEASE" ]; then
+            HIGHEST=$(printf '%s\n%s\n' "$BASE" "$RELEASE" | sort -V | tail -n 1)
+          fi
+
+          if [ -n "$RELEASE" ] && [ "$HIGHEST" = "$RELEASE" ]; then
+            VERSION="$RELEASE"
+            if [ "$BUMP" = "true" ]; then
+              IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+              VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            fi
+          else
+            # No release, or baseversion is higher than the release: start at baseversion
+            VERSION="$BASE"
+          fi
+
+          SUFFIX=""
+          if [ "$PRERELEASE" = "true" ]; then
+            BRANCH_SLUG=$(echo "$GITHUB_REF_NAME" \
+              | sed 's|/|-|g' \
+              | sed 's/[^a-zA-Z0-9-]/-/g' \
+              | tr '[:upper:]' '[:lower:]' \
+              | sed 's/-\+/-/g' \
+              | sed 's/^-//;s/-$//')
+            SUFFIX="-${BRANCH_SLUG}.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
+          fi
+          TAG="${PREFIX}${VERSION}${SUFFIX}"
+          echo "baseversion: $BASE, release: ${RELEASE:-none}, tag: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+

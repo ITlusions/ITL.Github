@@ -10,7 +10,7 @@ name: Publish — PyPI (reusable)
 # Usage:
 #   jobs:
 #     publish:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-publish-pypi.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-publish-pypi.yml@main
 #       with:
 #         artifact-name: "myproject-wheel"
 #         environment: "production"

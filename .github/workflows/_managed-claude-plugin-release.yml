@@ -5,14 +5,14 @@ name: Claude Plugin Release (reusable)
 # Resolves the plugin's current version from its plugin.json, skips
 # (idempotent) if a release for that {component-name}/v{version} tag
 # already exists, otherwise re-validates the plugin, zips it, and delegates
-# actual release creation to _reusable-release-gh.yml (nested reusable
+# actual release creation to _managed-release-gh.yml (nested reusable
 # workflow call — same repo, so no version ref needed).
 #
 # Usage (safe to call on every run for every plugin — a matrix over all
 # discovered plugins works fine; unchanged plugins just no-op):
 #   jobs:
 #     release:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-release.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugin-release.yml@main
 #       with:
 #         component-path: "plugins/my-plugin"
 #         component-name: "my-plugin"
@@ -32,7 +32,7 @@ on:
         description: >
           Specific branch/tag/SHA to check out. Required when chained right
           after a job that just committed a version bump (e.g. from
-          _reusable-claude-plugin-version-tag.yml) — without it, this job's
+          _managed-claude-plugin-version-tag.yml) — without it, this job's
           own checkout resolves the ORIGINAL triggering ref, not the fresh
           commit, and will read the plugin's previous (already-released)
           version instead of the one just tagged. Empty = default event ref.
@@ -132,7 +132,7 @@ jobs:
     permissions:
       contents: write
       actions: read
-    uses: ./.github/workflows/_reusable-release-gh.yml
+    uses: ./.github/workflows/_managed-release-gh.yml
     with:
       tag: ${{ needs.build.outputs.tag }}
       # Give the release a display title without the "/v" tag separator.

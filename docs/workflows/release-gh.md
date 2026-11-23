@@ -1,6 +1,6 @@
 # GitHub Release
 
-**File:** `_reusable-release-gh.yml`
+**File:** `_managed-release-gh.yml`
 
 Creates a GitHub Release for a given tag, optionally attaching a build artifact
 (e.g. a wheel file) as a release asset.
@@ -56,7 +56,7 @@ jobs:
   create-release:
     needs: auto-tag
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-release-gh.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-release-gh.yml@main
     with:
       tag: ${{ needs.auto-tag.outputs.tag }}
       artifact-name: "myproject-wheel"

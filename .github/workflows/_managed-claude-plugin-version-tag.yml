@@ -29,7 +29,7 @@ name: Claude Plugin Version + Tag (reusable)
 # Usage:
 #   jobs:
 #     version-tag:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-version-tag.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugin-version-tag.yml@main
 #       with:
 #         component-path: "plugins/my-plugin"
 #         component-name: "my-plugin"

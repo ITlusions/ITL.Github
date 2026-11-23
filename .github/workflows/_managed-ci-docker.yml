@@ -14,7 +14,7 @@ name: CI — Docker project (reusable)
 # Usage:
 #   jobs:
 #     ci:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-docker.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-docker.yml@main
 #       with:
 #         image-name: "ghcr.io/itlusions/braincell-api"
 #         checkout-path: "ITL.BrainCell.Api"

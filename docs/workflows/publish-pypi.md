@@ -1,6 +1,6 @@
 # Publish PyPI
 
-**File:** `_reusable-publish-pypi.yml`
+**File:** `_managed-publish-pypi.yml`
 
 Publishes a Python wheel to PyPI or TestPyPI using OIDC Trusted Publishing.
 No API tokens or secrets are required — authentication is handled via GitHub's OIDC provider.
@@ -74,7 +74,7 @@ on:
 
 jobs:
   publish:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-publish-pypi.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-publish-pypi.yml@main
     with:
       artifact-name: "myproject-wheel"
       commit-sha: ${{ github.event.release.target_commitish }}

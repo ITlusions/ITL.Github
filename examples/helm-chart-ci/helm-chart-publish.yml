@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         chart: ${{ fromJSON(needs.detect.outputs.charts) }}
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-publish.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-publish.yml@main
     with:
       commit-sha: ${{ github.event.workflow_run.head_sha }}
       chart-path: ${{ matrix.chart }}

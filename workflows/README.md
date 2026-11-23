@@ -4,7 +4,7 @@ This folder contains reusable GitHub Actions workflows for Python projects acros
 
 ## Available Templates
 
-### 1. **_reusable-python-ci.yml**
+### 1. **_managed-python-ci.yml**
 Comprehensive CI pipeline for Python packages:
 - **Test**: Import validation + dependency checks
 - **Lint**: Black formatting, mypy type checking, ruff linter, bandit security scan
@@ -14,7 +14,7 @@ Comprehensive CI pipeline for Python packages:
 ```yaml
 jobs:
   ci:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-ci.yml@main
     with:
       python_version: '3.12'
       test_import_path: 'your_package.core.config'
@@ -37,7 +37,7 @@ jobs:
 
 ---
 
-### 2. **_reusable-python-publish.yml**
+### 2. **_managed-python-publish.yml**
 Intelligent PyPI publishing with automatic branch detection:
 - **Automatic Publishing**: Push to `feature/**` → TestPyPI, `hotfix/**` → PyPI
 - **Release Publishing**: GitHub Release (prerelease: true) → TestPyPI, (false) → PyPI
@@ -48,7 +48,7 @@ Intelligent PyPI publishing with automatic branch detection:
 ```yaml
 jobs:
   publish:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-publish.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-publish.yml@main
     with:
       python_version: '3.12'
     secrets: inherit
@@ -90,7 +90,7 @@ on:
 
 jobs:
   ci:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-ci.yml@main
     with:
       python_version: '3.12'
       test_import_path: 'your_package.core'
@@ -121,7 +121,7 @@ on:
 
 jobs:
   publish:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-publish.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-publish.yml@main
     with:
       python_version: '3.12'
     secrets: inherit
