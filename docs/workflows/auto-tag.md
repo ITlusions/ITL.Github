@@ -2,8 +2,9 @@
 
 **File:** `_managed-auto-tag.yml`
 
-Reads the latest GitHub release and pushes a patch bump tag to the specified commit.
-Used at the end of a successful CI run on `main`.
+Computes the version from the latest GitHub release and the `baseversion` floor. It does not push a tag:
+the tag is created by the GitHub release that follows. Used for `main` (patch bump) and, with `prerelease: true`,
+for other branches (branch prerelease tag, no bump).
 
 ## Version Source
 
@@ -28,15 +29,9 @@ Only the **patch** component is incremented. Major and minor bumps are done by r
 
 | Input | Type | Default | Description |
 |---|---|---|---|
-| `commit-sha` | string | `""` | Commit SHA to tag. Empty = HEAD of default branch |
+| `prerelease` | boolean | `false` | Branch build: no patch bump, appends `-<branch>.<run>+<sha7>` |
 | `tag-prefix` | string | `v` | Prefix for the tag, e.g. `v` |
 | `metadata-file` | string | `.metadata.json` | JSON file with a `baseversion` (`X.Y.Z`) used as the floor. Defaults to `0.1.0` if the file is absent |
-
-## Secrets
-
-| Secret | Required | Description |
-|---|---|---|
-| `gh-pat` | Recommended | PAT for pushing the tag. Required if `GITHUB_TOKEN` lacks `contents: write` |
 
 ## Outputs
 
@@ -51,12 +46,10 @@ Only the **patch** component is incremented. Major and minor bumps are done by r
 jobs:
   auto-tag:
     needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
     uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
     with:
-      commit-sha: ${{ github.sha }}
-    secrets:
-      gh-pat: ${{ secrets.GH_PAT }}
+      prerelease: ${{ github.ref != 'refs/heads/main' }}
 ```
 
 ## Notes

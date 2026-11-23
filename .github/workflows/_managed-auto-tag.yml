@@ -1,7 +1,7 @@
 name: Auto-tag semver patch (reusable)
 
 # ---------------------------------------------------------------------------
-# Reusable workflow: determine the next version from the latest GitHub release and push a patch bump
+# Reusable workflow: determine the next version from the latest GitHub release (the release creates the tag)
 #
 # Version rules:
 #   - Latest release (X.Y.Z) is the source; the patch is bumped.
@@ -11,19 +11,10 @@ name: Auto-tag semver patch (reusable)
 #   jobs:
 #     auto-tag:
 #       uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
-#       with:
-#         commit-sha: ${{ github.sha }}
-#       secrets:
-#         gh-pat: ${{ secrets.GH_PAT }}
 # ---------------------------------------------------------------------------
 on:
   workflow_call:
     inputs:
-      commit-sha:
-        description: "Commit SHA to tag"
-        required: false
-        type: string
-        default: ""
       tag-prefix:
         description: "Tag prefix, e.g. 'v'"
         required: false
@@ -34,15 +25,15 @@ on:
         required: false
         type: string
         default: ".metadata.json"
-
-    secrets:
-      gh-pat:
-        description: "PAT for pushing the tag (required if GITHUB_TOKEN lacks write access)"
+      prerelease:
+        description: "Branch build: no patch bump, appends -<branch>.<run>+<sha7>"
         required: false
+        type: boolean
+        default: false
 
     outputs:
       tag:
-        description: "Created tag, e.g. v0.1.1"
+        description: "Tag for the new version, e.g. v0.1.1"
         value: ${{ jobs.auto-tag.outputs.tag }}
       version:
         description: "Version without prefix, e.g. 0.1.1"
@@ -50,30 +41,30 @@ on:
 
 jobs:
   auto-tag:
-    name: Auto-tag patch release
+    name: Determine next version
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.next-version.outputs.next }}
+      tag: ${{ steps.next-version.outputs.tag }}
       version: ${{ steps.next-version.outputs.version }}
 
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-          token: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
 
       - name: Determine next version
         id: next-version
         env:
-          GH_TOKEN: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PREFIX: ${{ inputs.tag-prefix }}
           METADATA_FILE: ${{ inputs.metadata-file }}
-          BUMP: "true"
+          BUMP: ${{ !inputs.prerelease }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
           set -euo pipefail
 
@@ -122,29 +113,18 @@ jobs:
             VERSION="$BASE"
           fi
 
-          NEXT="${PREFIX}${VERSION}"
-          echo "baseversion: $BASE, release: ${RELEASE:-none}, next: $NEXT"
-          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          SUFFIX=""
+          if [ "$PRERELEASE" = "true" ]; then
+            BRANCH_SLUG=$(echo "$GITHUB_REF_NAME" \
+              | sed 's|/|-|g' \
+              | sed 's/[^a-zA-Z0-9-]/-/g' \
+              | tr '[:upper:]' '[:lower:]' \
+              | sed 's/-\+/-/g' \
+              | sed 's/^-//;s/-$//')
+            SUFFIX="-${BRANCH_SLUG}.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
+          fi
+          TAG="${PREFIX}${VERSION}${SUFFIX}"
+          echo "baseversion: $BASE, release: ${RELEASE:-none}, tag: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Check if tag already exists
-        id: tag-check
-        run: |
-          TAG="${{ steps.next-version.outputs.next }}"
-          if git tag | grep -q "^${TAG}$"; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Tag $TAG already exists — skipped"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Push tag ${{ steps.next-version.outputs.next }}
-        if: steps.tag-check.outputs.exists == 'false'
-        run: |
-          TAG="${{ steps.next-version.outputs.next }}"
-          SHA="${{ inputs.commit-sha || github.sha }}"
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "$TAG" "$SHA"
-          git push origin "$TAG"
-          echo "Tag $TAG pushed on commit $SHA"

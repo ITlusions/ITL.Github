@@ -44,38 +44,29 @@ jobs:
     uses: ./.github/workflows/_managed-check-deadlinks.yml
 
   # ---------------------------------------------------------------------------
-  # Patch tag on main: bumps the highest vX.Y.Z by one patch version
+  # Version tag: patch bump on main, prerelease tag on other branches
   #    Enables consumers to pin: @v1.2.3 or @v1
   # ---------------------------------------------------------------------------
-  patch-tag:
-    name: Patch tag (main)
+  version:
+    name: Version tag
     needs: [validate-actions, check-deadlinks]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
     uses: ./.github/workflows/_managed-auto-tag.yml
     with:
-      commit-sha: ${{ github.sha }}
-
-  # ---------------------------------------------------------------------------
-  # Prerelease tag on non-main branches: existing tags are never moved
-  # ---------------------------------------------------------------------------
-  prerelease-tag:
-    name: Prerelease tag (branches)
-    needs: [validate-actions, check-deadlinks]
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-    uses: ./.github/workflows/_managed-branch-tag.yml
+      prerelease: ${{ github.ref != 'refs/heads/main' }}
     permissions:
-      contents: write
+      contents: read
 
   # ---------------------------------------------------------------------------
   # GitHub release for whichever tag was created: patch tag on main, prerelease tag on branches
   # ---------------------------------------------------------------------------
   release:
     name: GitHub release
-    needs: [patch-tag, prerelease-tag]
-    if: always() && ((needs.patch-tag.result == 'success' && needs.patch-tag.outputs.tag != '') || (needs.prerelease-tag.result == 'success' && needs.prerelease-tag.outputs.tag != ''))
+    needs: version
+    if: needs.version.result == 'success' && needs.version.outputs.tag != ''
     uses: ./.github/workflows/_managed-release-gh.yml
     with:
-      tag: ${{ needs.patch-tag.outputs.tag || needs.prerelease-tag.outputs.tag }}
+      tag: ${{ needs.version.outputs.tag }}
       prerelease: ${{ github.ref != 'refs/heads/main' }}
     permissions:
       contents: write
@@ -87,10 +78,10 @@ jobs:
   # ---------------------------------------------------------------------------
   tagging:
     name: Tagging
-    needs: patch-tag
+    needs: [version, release]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/_managed-float-tags.yml
     with:
-      tag: ${{ needs.patch-tag.outputs.tag }}
+      tag: ${{ needs.version.outputs.tag }}
     permissions:
       contents: write
