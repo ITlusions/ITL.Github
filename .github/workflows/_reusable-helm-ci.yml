@@ -142,19 +142,19 @@ jobs:
           echo "Rendered $(grep -c '^kind:' rendered.yaml) manifests"
 
       - name: Set up Python
-        if: ${{ (needs.config.outputs.kubeconform || string(inputs.kubeconform)) == 'true' }}
+        if: ${{ (needs.config.outputs.kubeconform || format('{0}', inputs.kubeconform)) == 'true' }}
         uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.12"
 
       - name: Install kubeconform
-        if: ${{ (needs.config.outputs.kubeconform || string(inputs.kubeconform)) == 'true' }}
+        if: ${{ (needs.config.outputs.kubeconform || format('{0}', inputs.kubeconform)) == 'true' }}
         run: |
           python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
           chart-pipeline setup-tools --directory dist/tools
 
       - name: Validate rendered manifests
-        if: ${{ (needs.config.outputs.kubeconform || string(inputs.kubeconform)) == 'true' }}
+        if: ${{ (needs.config.outputs.kubeconform || format('{0}', inputs.kubeconform)) == 'true' }}
         env:
           KUBE_VERSION: ${{ needs.config.outputs.kube-version || inputs.kube-version }}
         run: kubeconform -strict -summary -kubernetes-version "$KUBE_VERSION" rendered.yaml
