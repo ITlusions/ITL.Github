@@ -1,11 +1,16 @@
 """Tests for the job summaries written after each security-scan step."""
 
+import contextlib
+import io
 import json
 import os
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
+
+import yaml
 
 from helm_pipeline.core.github import GitHubFiles
 from helm_pipeline.security.reports import ERROR_REPORT
@@ -51,6 +56,55 @@ class SecuritySummaryTest(unittest.TestCase):
         self.assertIn('| Trivy misconfigurations | passed | - |', summary)
         self.assertIn('| Kubescape | skipped | - |', summary)
         self.assertIn('| Trivy image scans | passed | 2 image(s) |', summary)
+
+    def test_that_blocking_kubescape_findings_become_warning_annotations(self):
+        """Test that each failed control at the blocking severity is shown as a warning annotation on the run."""
+        output = self.root / 'dist' / 'security' / 'my-chart'
+        self.write_json(output / 'kubescape.json', {'summaryDetails': {'controls': {
+            'C-0270': {'name': 'Resource limits', 'status': {'status': 'failed'},
+                       'ResourceCounters': {'failedResources': 2}},
+            'C-0009': {'name': 'Passing control', 'status': {'status': 'passed'}},
+        }}})
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            self.summary.write('chart', 'my-chart')
+
+        self.assertIn('::warning title=Kubescape C-0270::Resource limits: failed on 2 resource(s) in my-chart',
+                      stdout.getvalue())
+        self.assertNotIn('C-0009', stdout.getvalue())
+        self.assertIn('| Kubescape | findings | - |', self.read_summary())
+
+    def test_that_exclusion_expiring_soon_becomes_a_warning_annotation(self):
+        """Test that an exclusion that expires within thirty days is shown as a warning annotation on the run."""
+        soon = (date.today() + timedelta(days=5)).isoformat()
+        exceptions = self.root / 'charts' / 'my-chart' / 'exceptions.yaml'
+        exceptions.parent.mkdir(parents=True)
+        exceptions.write_text(yaml.safe_dump({'trivy': {'misconfigurations': [{
+            'id': 'KSV-0014', 'statement': 'Needed', 'owner': 'Platform team', 'expires': soon, 'request': 'issue-1',
+        }]}}), encoding='utf-8')
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            self.summary.write('chart', 'my-chart')
+
+        self.assertIn('::warning title=Exclusion expiring: KSV-0014::trivy KSV-0014 in my-chart: expires in 5 day(s)',
+                      stdout.getvalue())
+
+    def test_that_cost_estimate_rounds_the_scan_up_to_whole_billed_minutes(self):
+        """Test that the cost estimate bills a 90 second scan as two minutes and shows the estimated cost."""
+        self.summary.write('chart', 'my-chart', seconds=90)
+
+        summary = self.read_summary()
+        self.assertIn('### Cost estimate', summary)
+        self.assertIn('| Billed minutes | 2 |', summary)
+        self.assertIn('| Estimated cost | USD 0.0160 |', summary)
+
+    def test_that_no_cost_estimate_is_written_without_a_duration(self):
+        """Test that the cost estimate is only added when the duration of the step is known."""
+        self.summary.write('chart', 'my-chart')
+
+        self.assertNotIn('Cost estimate', self.read_summary())
 
     def test_that_chart_summary_reports_failed_scanner_and_lists_errors(self):
         """Test that a failed scanner is marked as failed and its error appears in the summary."""

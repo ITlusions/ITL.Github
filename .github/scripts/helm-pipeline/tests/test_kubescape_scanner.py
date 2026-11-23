@@ -53,11 +53,20 @@ class KubescapeScannerTest(unittest.TestCase):
             scanner.scan(ScanReport(output), Path('manifest.yaml'), output, 'exceptions.json')
         self.assertEqual(runner.calls[0][-2:], ['--exceptions', 'exceptions.json'])
 
-    def test_failing_scan_is_recorded_and_raised(self):
-        """Test that a Kubescape exit code of 1 fails the scan and is recorded in the scan report."""
+    def test_findings_exit_code_is_not_a_scanner_failure(self):
+        """Test that a Kubescape exit code of 1 for failed controls does not fail the scan or record an error."""
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory).resolve()
             scanner = KubescapeScanner(CommandRunner(output, RecordingRunner(returncode=1)))
+            scanner.scan(ScanReport(output), Path('manifest.yaml'), output)
+            recorded = (output / ERROR_REPORT).exists()
+        self.assertFalse(recorded)
+
+    def test_other_exit_codes_are_recorded_and_raised(self):
+        """Test that a Kubescape failure other than findings is recorded in the scan report and raised."""
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory).resolve()
+            scanner = KubescapeScanner(CommandRunner(output, RecordingRunner(returncode=2)))
             with self.assertRaises(subprocess.CalledProcessError):
                 scanner.scan(ScanReport(output), Path('manifest.yaml'), output)
             errors = (output / ERROR_REPORT).read_text(encoding='utf-8')

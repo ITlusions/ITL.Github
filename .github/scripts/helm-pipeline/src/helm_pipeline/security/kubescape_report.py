@@ -44,3 +44,14 @@ class KubescapeReport:
                     'resources': counters.get('failedResources', 0),
                 })
         return failing
+
+    def control_ids(self):
+        """Return the IDs of every control that the scan evaluated, whatever its status.
+
+        Returns:
+            A set of control IDs. The set is empty when the report does not exist.
+        """
+        if not self.path.is_file():
+            return set()
+        report = json.loads(self.path.read_text(encoding='utf-8'))
+        return set((report.get('summaryDetails') or {}).get('controls') or {})
