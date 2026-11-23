@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from helm_pipeline.core.logging_config import configure_logging
@@ -50,6 +51,7 @@ class SecurityCli:
         pipeline = SecurityPipeline(Path.cwd())
         summary = SecuritySummary(pipeline.github, pipeline.root,
                                   os.environ.get('SECURITY_SUMMARY_LAYOUT', DEFAULT_LAYOUT))
+        started = time.monotonic()
         try:
             self.dispatch(args, pipeline)
         except subprocess.CalledProcessError as error:
@@ -62,7 +64,7 @@ class SecurityCli:
             LOGGER.debug('Traceback for the failure above', exc_info=True)
             sys.exit(1)
         finally:
-            summary.write(args.command, getattr(args, 'chart', None))
+            summary.write(args.command, getattr(args, 'chart', None), time.monotonic() - started)
 
     def log_failing_controls(self, args, pipeline):
         """Log each failed Kubescape control of a chart scan in plain words.

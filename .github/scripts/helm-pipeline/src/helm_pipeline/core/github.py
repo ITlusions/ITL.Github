@@ -26,6 +26,19 @@ class GitHubFiles:
         with Path(summary).open('a', encoding='utf-8') as stream:
             stream.write('\n'.join(lines) + '\n\n')
 
+    def annotate(self, level, title, message):
+        """Print a workflow command that shows an annotation on the run; nothing is printed outside GitHub Actions.
+
+        Args:
+            level: Annotation level, such as warning or error.
+            title: Short heading of the annotation.
+            message: Annotation text.
+        """
+        if not os.environ.get('GITHUB_STEP_SUMMARY'):
+            return
+        escaped = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print(f'::{level} title={title}::{escaped}', flush=True)
+
     def add_to_path(self, directory):
         """Append a directory to GITHUB_PATH so that later workflow steps can run its binaries."""
         target = os.environ.get('GITHUB_PATH')

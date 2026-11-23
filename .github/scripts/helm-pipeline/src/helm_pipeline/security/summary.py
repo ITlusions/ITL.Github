@@ -4,15 +4,24 @@ import json
 from pathlib import Path
 
 from helm_pipeline.security.chart_exceptions import ChartExceptions
+from helm_pipeline.security.cost_estimate import CostEstimate
+from helm_pipeline.security.exclusion_audit import ExclusionAudit
 from helm_pipeline.security.kubescape_report import KubescapeReport
+from helm_pipeline.security.misconfigurations import MisconfigurationReport
 from helm_pipeline.security.reports import ERROR_REPORT
-from helm_pipeline.security.summary_layouts import DEFAULT_LAYOUT, ChartFindings, SummaryLayoutFactory
+from helm_pipeline.security.summary_layouts import (
+    DEFAULT_LAYOUT,
+    STATUS_BLOCKING,
+    ChartFindings,
+    SummaryLayoutFactory,
+)
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
 GITLEAKS_REPORT = 'gitleaks.json'
 PIP_AUDIT_REPORT = 'pip-audit.json'
 IMAGES_REPORT = 'images.json'
 TRIVY_CONFIG_REPORT = 'config.json'
+TRIVY_UNFILTERED_REPORT = 'config-unfiltered.json'
 KUBESCAPE_REPORT = 'kubescape.json'
 REPOSITORY_DIRECTORY = 'repository'
 RESULT_HEADERS = ['Scanner', 'Result', 'Detail']
@@ -39,12 +48,13 @@ class SecuritySummary:
         self.root = Path(root)
         self.layout = SummaryLayoutFactory().create(layout)
 
-    def write(self, command, chart=None):
+    def write(self, command, chart=None, seconds=None):
         """Write the summary for a finished security step; steps without a summary are ignored.
 
         Args:
             command: Name of the security-scan subcommand that ran.
             chart: Chart name or path, used by the chart command only.
+            seconds: Duration of the step; when given, an estimated runner cost is added.
         """
         if command == 'chart':
             self.chart(chart)
@@ -52,21 +62,45 @@ class SecuritySummary:
             self.secrets()
         elif command == 'dependencies':
             self.dependencies()
+        if seconds is not None:
+            self.cost(seconds)
+
+    def cost(self, seconds):
+        """Add the estimated runner cost of the scan step to the job summary."""
+        estimate = CostEstimate()
+        minutes = estimate.billed_minutes(seconds)
+        rows = [
+            ('Scan duration', f'{seconds:.0f} s'),
+            ('Billed minutes', str(minutes)),
+            ('Estimated cost', f'USD {estimate.cost(minutes):.4f}'),
+            ('Scope', 'scan step only; excludes checkout, setup and upload'),
+        ]
+        self.github.append_table('Cost estimate', ['Item', 'Value'], rows)
 
     def chart(self, chart):
         """Add the scanner results of one chart, and any scanner errors, to the job summary."""
-        output = self.root / 'dist' / 'security' / Path(chart).name
+        name = Path(chart).name
+        output = self.root / 'dist' / 'security' / name
         errors = self.errors(output)
+        exceptions = ChartExceptions(self.root, self.github)
+        exclusions = exceptions.exclusions(name)
+        findings = ChartFindings(KubescapeReport(output / KUBESCAPE_REPORT).failing_controls(), exclusions)
+        blocking = findings.with_status(STATUS_BLOCKING)
         rows = [
             ('Trivy misconfigurations', self.result(output / TRIVY_CONFIG_REPORT, errors, 'trivy config'), '-'),
-            ('Kubescape', self.result(output / KUBESCAPE_REPORT, errors, 'kubescape'), '-'),
+            ('Kubescape', self.result(output / KUBESCAPE_REPORT, errors, 'kubescape', bool(blocking)), '-'),
             ('Trivy image scans', self.result(output / IMAGES_REPORT, errors, 'trivy image'),
              f'{len(self.load_json(output / IMAGES_REPORT, []))} image(s)'),
         ]
-        self.github.append_table(f'Chart security: {Path(chart).name}', RESULT_HEADERS, rows)
-        findings = ChartFindings(KubescapeReport(output / KUBESCAPE_REPORT).failing_controls(),
-                                 ChartExceptions(self.root, self.github).exclusions(Path(chart).name))
-        self.layout.render(self.github, Path(chart).name, findings)
+        self.github.append_table(f'Chart security: {name}', RESULT_HEADERS, rows)
+        for finding in blocking:
+            self.github.annotate('warning', f'Kubescape {finding.identifier}',
+                                 f'{finding.name}: failed on {finding.resources} resource(s) in {name}')
+        audit = ExclusionAudit(exceptions.today, MisconfigurationReport(self.github))
+        for issue in audit.audit(exclusions, output / TRIVY_UNFILTERED_REPORT, output / KUBESCAPE_REPORT):
+            self.github.annotate('warning', f'Exclusion {issue.kind}: {issue.identifier}',
+                                 f'{issue.scanner} {issue.identifier} in {name}: {issue.message}')
+        self.layout.render(self.github, name, findings)
         self.write_errors(errors)
 
     def secrets(self):
