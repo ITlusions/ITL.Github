@@ -1,0 +1,62 @@
+name: Branch tag and release (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: tag the current commit with a branch version and create a prerelease.
+# Version scheme: v<highest stable>-<branch-slug>.<run number>+<sha7>. Existing tags are never moved.
+#
+# Usage:
+#   jobs:
+#     branch-tag:
+#       uses: ./.github/workflows/_reusable-branch-tag.yml
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+
+jobs:
+  branch-tag:
+    name: Branch tag and release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Create and push tag
+        run: |
+          LATEST=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V \
+            | tail -n 1)
+          CURRENT="${LATEST#v}"
+          CURRENT="${CURRENT:-0.1.0}"
+          BRANCH_SLUG=$(echo "$GITHUB_REF_NAME" \
+            | sed 's|/|-|g' \
+            | sed 's/[^a-zA-Z0-9-]/-/g' \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed 's/-\+/-/g' \
+            | sed 's/^-//;s/-$//')
+          TAG="v${CURRENT}-${BRANCH_SLUG}.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+            echo "Tag $TAG already exists; skipping"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release if missing
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --prerelease --generate-notes
+          fi

@@ -1,0 +1,48 @@
+name: Float major and latest tags (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: move the floating major (e.g. v1) and latest tags to a release tag
+#
+# Usage:
+#   jobs:
+#     float-tags:
+#       uses: ./.github/workflows/_reusable-float-tags.yml
+#       with:
+#         tag: "v1.2.3"
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to float to, e.g. v1.2.3"
+        required: true
+        type: string
+
+jobs:
+  float-tags:
+    name: Float major and latest tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Move major floating tag
+        run: |
+          MAJOR="v$(echo "${TAG#v}" | cut -d. -f1)"
+          echo "Floating $MAJOR → $TAG"
+          git tag -f "$MAJOR" "$TAG"
+          git push origin "$MAJOR" --force
+        env:
+          TAG: ${{ inputs.tag }}
+
+      - name: Move latest floating tag
+        run: |
+          echo "Floating latest → $TAG"
+          git tag -f latest "$TAG"
+          git push origin latest --force
+        env:
+          TAG: ${{ inputs.tag }}

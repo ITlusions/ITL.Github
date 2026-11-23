@@ -33,53 +33,13 @@ concurrency:
 jobs:
 
   # ---------------------------------------------------------------------------
-  # 1. Validate all action.yml files (YAML syntax + actionlint)
+  # 1. Validate actions and workflows, and check markdown deadlinks — all branches
   # ---------------------------------------------------------------------------
   validate:
-    name: Validate actions
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    uses: ./.github/workflows/_reusable-validate-actions.yml
 
-      - name: Install yamllint
-        run: pip install yamllint
-
-      - name: Lint all action.yml files
-        run: |
-          find actions -name "action.yml" | while read f; do
-            echo "→ $f"
-            yamllint -d "{extends: default, rules: {line-length: {max: 160}}}" "$f"
-          done
-
-      - name: Install actionlint
-        run: |
-          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          sudo mv actionlint /usr/local/bin/
-
-      - name: Lint composite actions with actionlint
-        run: |
-          # actionlint targets workflow files only — not composite action.yml files.
-          # -shellcheck="" disables the embedded shellcheck runner (separate concern).
-          actionlint -shellcheck="" .github/workflows/*.yml
-
-  # ---------------------------------------------------------------------------
-  # Markdown deadlink validation — all branches
-  # ---------------------------------------------------------------------------
   check-deadlinks:
-    name: Check markdown deadlinks
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Scan for deadlinks
-        run: |
-          python3 .github/scripts/check-md-deadlinks.py --output-format list
+    uses: ./.github/workflows/_reusable-check-deadlinks.yml
 
   # ---------------------------------------------------------------------------
   # 2. Auto-tag (patch bump) — main only
@@ -97,103 +57,33 @@ jobs:
   # 2b. Create GitHub Release for the new tag — main only
   # ---------------------------------------------------------------------------
   release:
-    name: GitHub Release
     needs: auto-tag
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.auto-tag.outputs.tag != ''
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/_reusable-release-gh.yml
+    with:
+      tag: ${{ needs.auto-tag.outputs.tag }}
     permissions:
       contents: write
-    steps:
-      - name: Create release if missing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.auto-tag.outputs.tag }}
-        run: |
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $TAG already exists"
-          else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
-          fi
 
   # ---------------------------------------------------------------------------
-  # 2c. Detect version for non-main branches (same scheme as _reusable-detect-version.yml)
-  # ---------------------------------------------------------------------------
-  detect-version:
-    name: Detect branch version
-    needs: [validate, check-deadlinks]
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-    uses: ./.github/workflows/_reusable-detect-version.yml
-
-  # ---------------------------------------------------------------------------
-  # 2d. Create the branch tag — non-main pushes only; existing tags are never moved
+  # 2c. Tag and release non-main branches — existing tags are never moved
   # ---------------------------------------------------------------------------
   branch-tag:
-    name: Branch tag
-    needs: detect-version
+    needs: [validate, check-deadlinks]
     if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/_reusable-branch-tag.yml
     permissions:
       contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-
-      - name: Create and push tag
-        env:
-          TAG: v${{ needs.detect-version.outputs.version }}
-        run: |
-          existing=$(git ls-remote --tags origin "refs/tags/$TAG")
-          if [ -n "$existing" ]; then
-            echo "Tag $TAG already exists; skipping"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "$TAG"
-          git push origin "$TAG"
-
-      - name: Create GitHub Release if missing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: v${{ needs.detect-version.outputs.version }}
-        run: |
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $TAG already exists"
-          else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --prerelease --generate-notes
-          fi
 
   # ---------------------------------------------------------------------------
   # 3. Update floating tags — main only (e.g. v1 → latest v1.x.x, latest → newest release)
   #    Allows consumers to pin to a major version: @v1, or to the newest release: @latest
   # ---------------------------------------------------------------------------
   float-major-tag:
-    name: Float major and latest tags
     needs: auto-tag
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/_reusable-float-tags.yml
+    with:
+      tag: ${{ needs.auto-tag.outputs.tag }}
     permissions:
       contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Move major floating tag
-        run: |
-          TAG="${{ needs.auto-tag.outputs.tag }}"
-          MAJOR="v$(echo "${TAG#v}" | cut -d. -f1)"
-          echo "Floating $MAJOR → $TAG"
-          git tag -f "$MAJOR"
-          git push origin "$MAJOR" --force
-
-      - name: Move latest floating tag
-        run: |
-          TAG="${{ needs.auto-tag.outputs.tag }}"
-          echo "Floating latest → $TAG"
-          git tag -f latest "$TAG"
-          git push origin latest --force

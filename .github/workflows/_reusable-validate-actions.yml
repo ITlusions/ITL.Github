@@ -1,0 +1,42 @@
+name: Validate actions (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: lint all action.yml files (yamllint) and workflow files (actionlint)
+#
+# Usage:
+#   jobs:
+#     validate:
+#       uses: ./.github/workflows/_reusable-validate-actions.yml
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+
+jobs:
+  validate:
+    name: Validate actions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint all action.yml files
+        run: |
+          find actions -name "action.yml" | while read f; do
+            echo "→ $f"
+            yamllint -d "{extends: default, rules: {line-length: {max: 160}}}" "$f"
+          done
+
+      - name: Install actionlint
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv actionlint /usr/local/bin/
+
+      - name: Lint workflows with actionlint
+        run: |
+          # -shellcheck="" disables the embedded shellcheck runner (separate concern).
+          actionlint -shellcheck="" .github/workflows/*.yml
