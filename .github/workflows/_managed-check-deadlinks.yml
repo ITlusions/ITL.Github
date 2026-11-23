@@ -6,7 +6,7 @@ name: Check markdown deadlinks (reusable)
 # Usage:
 #   jobs:
 #     check-deadlinks:
-#       uses: ./.github/workflows/_reusable-check-deadlinks.yml
+#       uses: ./.github/workflows/_managed-check-deadlinks.yml
 # ---------------------------------------------------------------------------
 on:
   workflow_call:

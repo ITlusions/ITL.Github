@@ -1,6 +1,6 @@
 # Reusable Python CI Template
 
-**File**: `.github/workflows/_reusable-python-ci.yml`  
+**File**: `.github/workflows/_managed-python-ci.yml`  
 **Location**: ITL.Github  
 **Type**: Reusable workflow (workflow_call)
 
@@ -36,7 +36,7 @@ on:
 
 jobs:
   ci:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-ci.yml@main
     with:
       python_version: '3.12'
       test_import_path: 'your_package.core'
@@ -193,7 +193,7 @@ dev = [
 # .github/workflows/ci.yml
 jobs:
   ci:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-ci.yml@main
 ```
 
 Uses all defaults:
@@ -208,7 +208,7 @@ Uses all defaults:
 # .github/workflows/ci.yml
 jobs:
   ci:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-ci.yml@main
     with:
       python_version: '3.13'
       test_import_path: 'my_api.services.database'
@@ -275,7 +275,7 @@ target-version = "py312"
 
 ## Related Templates
 
-- [`_reusable-python-publish.yml`](reusable-python-publish.md) - Publish to PyPI/TestPyPI
+- [`_managed-python-publish.yml`](reusable-python-publish.md) - Publish to PyPI/TestPyPI
 - [`ci-docker.md`](ci-docker.md) - CI for Docker images
 - [`publish-pypi.md`](publish-pypi.md) - PyPI publishing details
 

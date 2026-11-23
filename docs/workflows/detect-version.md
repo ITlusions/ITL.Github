@@ -1,6 +1,6 @@
 # Detect Version
 
-**File:** `_reusable-detect-version.yml`
+**File:** `_managed-detect-version.yml`
 
 Determines a semver-based version string from the current branch and git tags.
 Outputs both a raw semver version and format-specific variants for Docker and Python wheels.
@@ -38,11 +38,11 @@ If no tags exist, `initial-version` is used as the base.
 ```yaml
 jobs:
   detect-version:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
 
   ci:
     needs: detect-version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
     with:
       version: ${{ needs.detect-version.outputs.python-version }}
 ```

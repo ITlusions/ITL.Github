@@ -1,6 +1,6 @@
 # Claude Plugin Version + Tag
 
-**File:** `_reusable-claude-plugin-version-tag.yml`
+**File:** `_managed-claude-plugin-version-tag.yml`
 
 Computes the next semver for one Claude Code plugin living in its own subdirectory (of a
 possibly multi-plugin marketplace repo), based on conventional-commit messages touching that
@@ -8,7 +8,7 @@ subdirectory since its last `{component-name}/v{version}` tag. Writes the versio
 `plugin.json`, commits, and tags via `claude plugin tag` (which also validates that `plugin.json`
 and any enclosing `marketplace.json` entry agree).
 
-Unlike [`_reusable-auto-tag.yml`](auto-tag.md), this is scoped to one component's subdirectory
+Unlike [`_managed-auto-tag.yml`](auto-tag.md), this is scoped to one component's subdirectory
 and reads conventional-commit prefixes to size the bump, rather than always patch-bumping the
 whole repo — needed for a repo containing several independently-versioned plugins.
 
@@ -65,7 +65,7 @@ jobs:
       max-parallel: 1
       matrix:
         plugin: ${{ fromJson(needs.discover.outputs.plugins) }}
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugin-version-tag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugin-version-tag.yml@main
     with:
       component-path: plugins/${{ matrix.plugin }}
       component-name: ${{ matrix.plugin }}

@@ -36,10 +36,10 @@ jobs:
   # 1. Validate actions and workflows, and check markdown deadlinks — all branches
   # ---------------------------------------------------------------------------
   validate:
-    uses: ./.github/workflows/_reusable-validate-actions.yml
+    uses: ./.github/workflows/_managed-validate-actions.yml
 
   check-deadlinks:
-    uses: ./.github/workflows/_reusable-check-deadlinks.yml
+    uses: ./.github/workflows/_managed-check-deadlinks.yml
 
   # ---------------------------------------------------------------------------
   # 2. Auto-tag (patch bump) — main only
@@ -49,7 +49,7 @@ jobs:
     name: Auto-tag
     needs: [validate, check-deadlinks]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITLusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+    uses: ITLusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
     with:
       commit-sha: ${{ github.sha }}
 
@@ -59,7 +59,7 @@ jobs:
   release:
     needs: auto-tag
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.auto-tag.outputs.tag != ''
-    uses: ./.github/workflows/_reusable-release-gh.yml
+    uses: ./.github/workflows/_managed-release-gh.yml
     with:
       tag: ${{ needs.auto-tag.outputs.tag }}
     permissions:
@@ -72,7 +72,7 @@ jobs:
   branch-tag:
     needs: [validate, check-deadlinks]
     if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-    uses: ./.github/workflows/_reusable-branch-tag.yml
+    uses: ./.github/workflows/_managed-branch-tag.yml
     permissions:
       contents: write
 
@@ -83,7 +83,7 @@ jobs:
   float-major-tag:
     needs: auto-tag
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/_reusable-float-tags.yml
+    uses: ./.github/workflows/_managed-float-tags.yml
     with:
       tag: ${{ needs.auto-tag.outputs.tag }}
     permissions:

@@ -1,6 +1,6 @@
 # Reusable Python Publish Template
 
-**File**: `.github/workflows/_reusable-python-publish.yml`  
+**File**: `.github/workflows/_managed-python-publish.yml`  
 **Location**: ITL.Github  
 **Type**: Reusable workflow (workflow_call)
 
@@ -57,7 +57,7 @@ on:
 
 jobs:
   publish:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-python-publish.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-python-publish.yml@main
     with:
       python_version: '3.12'
     secrets: inherit
@@ -443,7 +443,7 @@ requires = ["setuptools>=68", "wheel", "setuptools-scm>=8"]
 
 ## Related Templates
 
-- [`_reusable-python-ci.yml`](reusable-python-ci.md) - CI testing and linting
+- [`_managed-python-ci.yml`](reusable-python-ci.md) - CI testing and linting
 - [`publish-pypi.md`](publish-pypi.md) - PyPI publishing details
 - [`detect-version.md`](detect-version.md) - Version detection strategies
 

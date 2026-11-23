@@ -6,7 +6,7 @@ name: Auto-tag semver patch (reusable)
 # Usage:
 #   jobs:
 #     auto-tag:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
 #       with:
 #         commit-sha: ${{ github.sha }}
 #       secrets:

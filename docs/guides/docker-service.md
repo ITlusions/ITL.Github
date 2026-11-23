@@ -59,11 +59,11 @@ concurrency:
 
 jobs:
   detect-version:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
 
   ci:
     needs: detect-version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-docker.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-docker.yml@main
     with:
       image-name: "ghcr.io/itlusions/myapp"
       checkout-path: "MyApp"
@@ -78,7 +78,7 @@ jobs:
   auto-tag:
     needs: ci
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
     with:
       commit-sha: ${{ github.sha }}
     secrets:
@@ -87,7 +87,7 @@ jobs:
   docker:
     needs: [ci, auto-tag]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-docker-retag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-docker-retag.yml@main
     with:
       source-image: ${{ needs.ci.outputs.image-tag }}
       target-image: "ghcr.io/itlusions/myapp"
@@ -98,7 +98,7 @@ jobs:
   release:
     needs: [auto-tag, docker]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-release-gh.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-release-gh.yml@main
     with:
       tag: ${{ needs.auto-tag.outputs.tag }}
       generate-release-notes: true

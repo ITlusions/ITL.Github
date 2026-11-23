@@ -1,6 +1,6 @@
 # Docker Retag
 
-**File:** `_reusable-docker-retag.yml`
+**File:** `_managed-docker-retag.yml`
 
 Promotes an existing Docker image to a new tag by retagging it — no rebuild, no new layer.
 Uses `docker buildx imagetools create` which is a manifest-only operation.
@@ -46,7 +46,7 @@ jobs:
   docker:
     needs: [ci, auto-tag]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-docker-retag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-docker-retag.yml@main
     with:
       source-image: ${{ needs.ci.outputs.image-tag }}
       target-image: "ghcr.io/itlusions/braincell-api"

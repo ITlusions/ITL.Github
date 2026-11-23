@@ -1,6 +1,6 @@
 # Auto-tag
 
-**File:** `_reusable-auto-tag.yml`
+**File:** `_managed-auto-tag.yml`
 
 Reads the highest existing semver tag in the repository and pushes a patch bump tag
 to the specified commit. Used at the end of a successful CI run on `main` or `release/**`.
@@ -43,7 +43,7 @@ jobs:
   auto-tag:
     needs: ci
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-auto-tag.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
     with:
       commit-sha: ${{ github.sha }}
     secrets:
@@ -55,7 +55,7 @@ jobs:
 - Tags pushed via a PAT do **not** trigger other GitHub Actions workflows.
   This is a GitHub security restriction. Use `on-push.yml` to chain all jobs
   in a single workflow file instead of relying on tag-triggered workflows.
-- The `tag` output can be passed to [`_reusable-release-gh.yml`](release-gh.md)
-  and [`_reusable-docker-retag.yml`](docker-retag.md).
+- The `tag` output can be passed to [`_managed-release-gh.yml`](release-gh.md)
+  and [`_managed-docker-retag.yml`](docker-retag.md).
 - Always guard this job with `if: github.ref == 'refs/heads/main'` (or `release/**`)
   to prevent tagging feature branches.

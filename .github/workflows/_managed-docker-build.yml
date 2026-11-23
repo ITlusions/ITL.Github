@@ -9,7 +9,7 @@ name: Docker Build + Push (reusable)
 # Usage:
 #   jobs:
 #     docker:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-docker-build.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-docker-build.yml@main
 #       with:
 #         image-name: "ghcr.io/itlusions/myapp"
 #         tag: "1.2.3"

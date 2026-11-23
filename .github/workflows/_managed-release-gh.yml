@@ -6,7 +6,7 @@ name: GitHub Release (reusable)
 # Usage:
 #   jobs:
 #     release:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-release-gh.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-release-gh.yml@main
 #       with:
 #         tag: "v1.2.3"
 #         artifact-name: "myproject-wheel"

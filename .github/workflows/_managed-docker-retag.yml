@@ -7,7 +7,7 @@ name: Docker retag (reusable)
 # Usage:
 #   jobs:
 #     docker:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-docker-retag.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-docker-retag.yml@main
 #       with:
 #         source-image: "ghcr.io/itlusions/braincell-api:0.1.4-ci"
 #         target-image: "ghcr.io/itlusions/braincell-api"

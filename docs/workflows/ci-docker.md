@@ -1,6 +1,6 @@
 # CI — Docker
 
-**File:** `_reusable-ci-docker.yml`
+**File:** `_managed-ci-docker.yml`
 
 Runs lint (ruff), tests (pytest), and validates a Docker build. Optionally pushes the image
 to a container registry. Supports multi-repo checkout for projects where the Dockerfile
@@ -67,11 +67,11 @@ The Docker build context is the parent directory containing both.
 ```yaml
 jobs:
   detect-version:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
 
   ci:
     needs: detect-version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-docker.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-docker.yml@main
     with:
       image-name: "ghcr.io/itlusions/braincell-api"
       checkout-path: "ITL.BrainCell.Api"

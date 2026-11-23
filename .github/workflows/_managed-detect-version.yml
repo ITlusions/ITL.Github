@@ -16,7 +16,7 @@ name: Detect version (reusable)
 # Usage:
 #   jobs:
 #     detect-version:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
 # ---------------------------------------------------------------------------
 on:
   workflow_call:

@@ -6,7 +6,7 @@ name: Float major and latest tags (reusable)
 # Usage:
 #   jobs:
 #     float-tags:
-#       uses: ./.github/workflows/_reusable-float-tags.yml
+#       uses: ./.github/workflows/_managed-float-tags.yml
 #       with:
 #         tag: "v1.2.3"
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # CI — Python
 
-**File:** `_reusable-ci-python.yml`
+**File:** `_managed-ci-python.yml`
 
 Runs lint (ruff), tests (pytest with a PostgreSQL service), and builds a Python wheel.
 The wheel is uploaded as a GitHub Actions artifact.
@@ -56,11 +56,11 @@ The wheel is uploaded as a GitHub Actions artifact.
 ```yaml
 jobs:
   detect-version:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-detect-version.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-detect-version.yml@main
 
   ci:
     needs: detect-version
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
     with:
       python-version: "3.12"
       artifact-name: "myproject-wheel"

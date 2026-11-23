@@ -7,7 +7,7 @@ name: Branch tag and release (reusable)
 # Usage:
 #   jobs:
 #     branch-tag:
-#       uses: ./.github/workflows/_reusable-branch-tag.yml
+#       uses: ./.github/workflows/_managed-branch-tag.yml
 # ---------------------------------------------------------------------------
 on:
   workflow_call:

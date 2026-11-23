@@ -163,7 +163,7 @@ from pathlib import Path
 def discover_workflows(path: Path) -> list[str]:
     """Discover all reusable workflows."""
     return [
-        f.stem for f in path.glob("_reusable-*.yml")
+        f.stem for f in path.glob("_managed-*.yml")
         if f.is_file()
     ]
 {% endcapture %}
@@ -177,7 +177,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
     with:
       python-version: "3.12"
 {% endcapture %}
@@ -225,7 +225,7 @@ name: CI
 on: [push]
 jobs:
   build:
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
 {% endcapture %}
 {% include code-block.html code=step2 language="yaml" title="Step 2: Configure Workflow" %}
 

@@ -1,13 +1,13 @@
 # Claude Plugins Publish
 
-**File:** `_reusable-claude-plugins-publish.yml`
+**File:** `_managed-claude-plugins-publish.yml`
 
 Version, tag, and release one Claude Code plugin as a single callable unit — chains
-[`_reusable-claude-plugin-version-tag.yml`](claude-plugin-version-tag.md) and
-[`_reusable-claude-plugin-release.yml`](claude-plugin-release.md) (nested reusable-workflow
+[`_managed-claude-plugin-version-tag.yml`](claude-plugin-version-tag.md) and
+[`_managed-claude-plugin-release.yml`](claude-plugin-release.md) (nested reusable-workflow
 calls) so a caller pipeline can have one `publish` job instead of two, matching the
 `ci` + `publish` shape used across ITLusions pipelines (see
-[`_reusable-python-publish.yml`](reusable-python-publish.md) for the Python equivalent).
+[`_managed-python-publish.yml`](reusable-python-publish.md) for the Python equivalent).
 
 Idempotent end to end: no-ops the tag if the plugin's directory hasn't changed since its last
 tag, and no-ops the release if one already exists for the current tag. Safe to call on every push
@@ -59,7 +59,7 @@ jobs:
     strategy:
       matrix:
         plugin: [ my-plugin ]   # add another entry per additional plugin
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-ci.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugins-ci.yml@main
     with:
       path: plugins/${{ matrix.plugin }}
 
@@ -70,7 +70,7 @@ jobs:
       max-parallel: 1
       matrix:
         plugin: [ my-plugin ]
-    uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-publish.yml@main
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugins-publish.yml@main
     with:
       component-path: plugins/${{ matrix.plugin }}
       component-name: ${{ matrix.plugin }}

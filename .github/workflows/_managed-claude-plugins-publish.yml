@@ -2,8 +2,8 @@ name: Claude Plugins Publish (reusable)
 
 # ---------------------------------------------------------------------------
 # Reusable workflow: version, tag, and release one Claude Code plugin as a
-# single callable unit — combines _reusable-claude-plugin-version-tag.yml
-# and _reusable-claude-plugin-release.yml (chained, nested reusable-workflow
+# single callable unit — combines _managed-claude-plugin-version-tag.yml
+# and _managed-claude-plugin-release.yml (chained, nested reusable-workflow
 # calls) so a caller pipeline can have one "publish" job instead of two.
 #
 # Idempotent end to end: no-ops the tag if the plugin's directory hasn't
@@ -15,7 +15,7 @@ name: Claude Plugins Publish (reusable)
 #     publish:
 #       needs: [ ci ]
 #       if: github.ref == 'refs/heads/main'
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-publish.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugins-publish.yml@main
 #       with:
 #         component-path: "plugins/my-plugin"
 #         component-name: "my-plugin"
@@ -67,7 +67,7 @@ on:
 
 jobs:
   version-tag:
-    uses: ./.github/workflows/_reusable-claude-plugin-version-tag.yml
+    uses: ./.github/workflows/_managed-claude-plugin-version-tag.yml
     with:
       component-path: ${{ inputs.component-path }}
       component-name: ${{ inputs.component-name }}
@@ -80,7 +80,7 @@ jobs:
 
   release:
     needs: version-tag
-    uses: ./.github/workflows/_reusable-claude-plugin-release.yml
+    uses: ./.github/workflows/_managed-claude-plugin-release.yml
     with:
       component-path: ${{ inputs.component-path }}
       component-name: ${{ inputs.component-name }}

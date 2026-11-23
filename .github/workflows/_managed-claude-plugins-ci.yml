@@ -7,7 +7,7 @@ name: Claude Plugins CI (reusable)
 # Usage:
 #   jobs:
 #     validate:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-claude-plugins-ci.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-claude-plugins-ci.yml@main
 #       with:
 #         path: "plugins/my-plugin"   # or "." for a marketplace root
 # ---------------------------------------------------------------------------

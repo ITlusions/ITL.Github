@@ -9,7 +9,7 @@ name: CI — Python (reusable)
 # Usage:
 #   jobs:
 #     ci:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-ci-python.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-ci-python.yml@main
 #       with:
 #         python-version: "3.12"
 #         artifact-name: "myproject-wheel"

@@ -6,7 +6,7 @@ name: Validate actions (reusable)
 # Usage:
 #   jobs:
 #     validate:
-#       uses: ./.github/workflows/_reusable-validate-actions.yml
+#       uses: ./.github/workflows/_managed-validate-actions.yml
 # ---------------------------------------------------------------------------
 on:
   workflow_call:

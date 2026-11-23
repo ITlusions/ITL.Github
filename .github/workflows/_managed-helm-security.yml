@@ -9,7 +9,7 @@ name: Helm Chart Security (reusable)
 # Usage:
 #   jobs:
 #     chart-security:
-#       uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-security.yml@main
+#       uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-security.yml@main
 #       with:
 #         chart: myapp
 # ---------------------------------------------------------------------------
