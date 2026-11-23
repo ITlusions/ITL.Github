@@ -32,8 +32,10 @@ class KubescapeReport:
         failing = []
         for control_id in sorted(controls):
             control = controls[control_id]
-            status = control.get('status') or {}
-            if status.get('status') == FAILED_STATUS:
+            status = control.get('status')
+            if isinstance(status, dict):
+                status = status.get('status')
+            if status == FAILED_STATUS:
                 counters = control.get('resourceCounters') or {}
                 failing.append({
                     'id': control_id,

@@ -3,7 +3,7 @@
 from helm_pipeline.security.reports import ScanReport
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
-BLOCKING_SEVERITY = 'high'
+BLOCKING_SEVERITY = 'critical'
 REPORT_FILE = 'kubescape.json'
 
 

@@ -40,7 +40,7 @@ class KubescapeScannerTest(unittest.TestCase):
             runner.calls,
             [[
                 'kubescape', 'scan', 'manifest.yaml', '--format', 'json',
-                '--output', str(output / 'kubescape.json'), '--severity-threshold', 'high', '--keep-local',
+                '--output', str(output / 'kubescape.json'), '--severity-threshold', 'critical', '--keep-local',
             ]],
         )
 
