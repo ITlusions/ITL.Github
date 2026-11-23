@@ -1,16 +1,17 @@
 """Command-line entry point for the security scans. Holds argument parsing only and delegates each step to SecurityPipeline."""
 
 import argparse
+import json
 import logging
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 from helm_pipeline.core.logging_config import configure_logging
 from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.pipeline import SecurityPipeline
+from helm_pipeline.security.pipeline_cost import PipelineCost
 from helm_pipeline.security.summary import KUBESCAPE_REPORT, SecuritySummary
 from helm_pipeline.security.summary_layouts import DEFAULT_LAYOUT
 from helm_pipeline.security.tools import SecurityToolInstaller
@@ -35,6 +36,8 @@ class SecurityCli:
         commands.add_parser('dependencies')
         chart = commands.add_parser('chart')
         chart.add_argument('chart', nargs='?', default=os.environ.get('CHART'))
+        pipeline_cost = commands.add_parser('pipeline-cost')
+        pipeline_cost.add_argument('--jobs', required=True, help='JSON file from gh run view --json jobs')
         return parser
 
     def run(self, argv=None):
@@ -51,7 +54,6 @@ class SecurityCli:
         pipeline = SecurityPipeline(Path.cwd())
         summary = SecuritySummary(pipeline.github, pipeline.root,
                                   os.environ.get('SECURITY_SUMMARY_LAYOUT', DEFAULT_LAYOUT))
-        started = time.monotonic()
         try:
             self.dispatch(args, pipeline)
         except subprocess.CalledProcessError as error:
@@ -64,7 +66,7 @@ class SecurityCli:
             LOGGER.debug('Traceback for the failure above', exc_info=True)
             sys.exit(1)
         finally:
-            summary.write(args.command, getattr(args, 'chart', None), time.monotonic() - started)
+            summary.write(args.command, getattr(args, 'chart', None))
 
     def log_failing_controls(self, args, pipeline):
         """Log each failed Kubescape control of a chart scan in plain words.
@@ -90,6 +92,8 @@ class SecurityCli:
             pipeline.scan_secrets(args.base or None)
         elif args.command == 'dependencies':
             pipeline.audit_dependencies()
+        elif args.command == 'pipeline-cost':
+            PipelineCost(pipeline.github).write(json.loads(Path(args.jobs).read_text(encoding='utf-8'))['jobs'])
         elif args.command == 'chart':
             pipeline.scan_chart(args.chart)
 
