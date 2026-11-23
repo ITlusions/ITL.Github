@@ -1,7 +1,11 @@
 name: Auto-tag semver patch (reusable)
 
 # ---------------------------------------------------------------------------
-# Reusable workflow: determine the highest semver tag and push a patch bump
+# Reusable workflow: determine the next version from the latest GitHub release and push a patch bump
+#
+# Version rules:
+#   - Latest release (X.Y.Z) is the source; the patch is bumped.
+#   - No release, or baseversion in .metadata.json is higher than the release: start at baseversion.
 #
 # Usage:
 #   jobs:
@@ -25,11 +29,11 @@ on:
         required: false
         type: string
         default: "v"
-      initial-version:
-        description: "Starting version when no tags exist yet"
+      metadata-file:
+        description: "JSON file with a 'baseversion' (X.Y.Z); defaults to 0.1.0 when the file is absent"
         required: false
         type: string
-        default: "0.1.0"
+        default: ".metadata.json"
 
     secrets:
       gh-pat:
@@ -64,30 +68,64 @@ jobs:
 
       - name: Determine next version
         id: next-version
+        env:
+          GH_TOKEN: ${{ secrets.gh-pat || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PREFIX: ${{ inputs.tag-prefix }}
+          METADATA_FILE: ${{ inputs.metadata-file }}
+          BUMP: "true"
         run: |
-          PREFIX="${{ inputs.tag-prefix }}"
-          PATTERN="${PREFIX}[0-9]*.[0-9]*.[0-9]*"
-          LATEST=$(git tag --list "$PATTERN" \
-            | grep -E "^${PREFIX}[0-9]+\.[0-9]+\.[0-9]+$" \
-            | sort -V \
-            | tail -n 1)
+          set -euo pipefail
 
-          if [ -z "$LATEST" ]; then
-            NEXT="${PREFIX}${{ inputs.initial-version }}"
-            echo "No existing tag found — starting at $NEXT"
+          # Base version floor; defaults to 0.1.0 when the metadata file is absent
+          if [ -f "$METADATA_FILE" ]; then
+            BASE=$(jq -er '.baseversion' "$METADATA_FILE")
           else
-            echo "Latest stable tag: $LATEST"
-            TRIMMED="${LATEST#$PREFIX}"
-            MAJOR=$(echo "$TRIMMED" | cut -d. -f1)
-            MINOR=$(echo "$TRIMMED" | cut -d. -f2)
-            PATCH=$(echo "$TRIMMED" | cut -d. -f3)
-            NEXT="${PREFIX}${MAJOR}.${MINOR}.$((PATCH + 1))"
+            BASE="0.1.0"
+          fi
+          if [[ ! "$BASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::baseversion '$BASE' in $METADATA_FILE is not X.Y.Z"
+            exit 1
           fi
 
-          VERSION="${NEXT#$PREFIX}"
-          echo "next=$NEXT" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "New tag: $NEXT"
+          # Latest published release (pre-releases and drafts are excluded by GitHub)
+          if RELEASE_TAG=$(gh release view --json tagName --jq .tagName 2>/tmp/gh-release.err); then
+            RELEASE="${RELEASE_TAG#"$PREFIX"}"
+            echo "Latest release: $RELEASE_TAG"
+          elif grep -qiE "no releases found|not found" /tmp/gh-release.err; then
+            RELEASE=""
+            echo "No release found"
+          else
+            cat /tmp/gh-release.err
+            exit 1
+          fi
+
+          if [ -n "$RELEASE" ] && [[ ! "$RELEASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::latest release '$RELEASE_TAG' is not a stable X.Y.Z version"
+            exit 1
+          fi
+
+          # Highest of the base version and the latest release
+          HIGHEST="$BASE"
+          if [ -n "$RELEASE" ]; then
+            HIGHEST=$(printf '%s\n%s\n' "$BASE" "$RELEASE" | sort -V | tail -n 1)
+          fi
+
+          if [ -n "$RELEASE" ] && [ "$HIGHEST" = "$RELEASE" ]; then
+            VERSION="$RELEASE"
+            if [ "$BUMP" = "true" ]; then
+              IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+              VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            fi
+          else
+            # No release, or baseversion is higher than the release: start at baseversion
+            VERSION="$BASE"
+          fi
+
+          NEXT="${PREFIX}${VERSION}"
+          echo "baseversion: $BASE, release: ${RELEASE:-none}, next: $NEXT"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag already exists
         id: tag-check
