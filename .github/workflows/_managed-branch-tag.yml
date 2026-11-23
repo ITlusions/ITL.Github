@@ -1,0 +1,52 @@
+name: Branch tag and release (reusable)
+
+# ---------------------------------------------------------------------------
+# Reusable workflow: compute the branch version tag for the current commit (the release creates the tag).
+# Version scheme: v<base>-<branch-slug>.<run number>+<sha7>, where <base> is the latest release or
+# baseversion from .metadata.json, whichever is higher. Reuses _managed-auto-tag.yml without a patch bump.
+#
+# Usage:
+#   jobs:
+#     branch-tag:
+#       uses: ./.github/workflows/_managed-branch-tag.yml
+# ---------------------------------------------------------------------------
+on:
+  workflow_call:
+    outputs:
+      tag:
+        description: "Branch tag that was created or already exists"
+        value: ${{ jobs.branch-tag.outputs.tag }}
+
+jobs:
+  branch-suffix:
+    name: Branch tag suffix
+    runs-on: ubuntu-latest
+    outputs:
+      suffix: ${{ steps.slug.outputs.suffix }}
+    steps:
+      - name: Build suffix
+        id: slug
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          BRANCH_SLUG=$(echo "$REF_NAME" \
+            | sed 's|/|-|g' \
+            | sed 's/[^a-zA-Z0-9-]/-/g' \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed 's/-\+/-/g' \
+            | sed 's/^-//;s/-$//')
+          echo "suffix=-${BRANCH_SLUG}.${RUN_NUMBER}+${SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+  branch-tag:
+    name: Branch tag
+    needs: branch-suffix
+    uses: ./.github/workflows/_managed-auto-tag.yml
+    permissions:
+      contents: read
+    with:
+      bump: false
+      suffix: ${{ needs.branch-suffix.outputs.suffix }}
+
