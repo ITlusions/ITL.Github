@@ -4,3 +4,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Generated from workflows and actions by scripts/generate_docs.py
+docs/reference/
+docs/_data/generated/

@@ -1,3 +1,5 @@
+---
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -501,8 +503,8 @@
     </a>
   </div>
   <div class="badges">
-    <span class="badge-pill"><span class="dot" style="background:var(--success)"></span>10 reusable workflows</span>
-    <span class="badge-pill"><span class="dot" style="background:#1f6feb"></span>4 composite actions</span>
+    <span class="badge-pill"><span class="dot" style="background:var(--success)"></span>{{ site.data.generated.workflows.count }} reusable workflows</span>
+    <span class="badge-pill"><span class="dot" style="background:#1f6feb"></span>{{ site.data.generated.actions.count }} composite actions</span>
     <span class="badge-pill"><span class="dot" style="background:#9e6a03"></span>OIDC Trusted Publishing</span>
     <span class="badge-pill"><span class="dot" style="background:#6e40c9"></span>Build-once promotion</span>
     <span class="badge-pill"><span class="dot" style="background:#f78166"></span>Semver auto-tag</span>
@@ -515,7 +517,7 @@
   <section id="workflows">
     <div class="container">
       <p class="section-label">Reusable Workflows</p>
-      <h2 class="section-title">10 workflows: new generation + legacy</h2>
+      <h2 class="section-title">Reusable workflows</h2>
       <p class="section-sub">
         Call any workflow from your repo with
         <code>uses: ITlusions/ITL.Github/.github/workflows/&lt;name&gt;.yml@main</code>
@@ -523,123 +525,20 @@
       </p>
 
       <div class="workflows-grid">
-
-        <a class="workflow-card" href="workflows/detect-version">
-          <div class="wf-filename">_managed-detect-version.yml</div>
-          <div class="wf-title">Detect Version</div>
-          <div class="wf-desc">Resolves a semver version from the current branch and git tags. Outputs a raw semver, a Docker-safe image tag, and a PEP 440 version for Python wheels.</div>
+        {% for category in site.data.generated.workflows.categories %}
+        {% for wf in category.workflows %}
+        <a class="workflow-card" href="{{ wf.url }}">
+          <div class="wf-filename">{{ wf.file }}</div>
+          <div class="wf-title">{{ wf.title }}{% if wf.legacy %} <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span>{% endif %}</div>
+          {% if wf.description != "" %}<div class="wf-desc">{{ wf.description }}</div>{% endif %}
           <div class="wf-tags">
-            <span class="wf-tag">version</span>
-            <span class="wf-tag">image-tag</span>
-            <span class="wf-tag">python-version</span>
-            <span class="wf-tag">is-release</span>
+            <span class="wf-tag">{{ category.name }}</span>
+            <span class="wf-tag">{{ wf.inputs }} inputs</span>
+            <span class="wf-tag">{{ wf.outputs }} outputs</span>
           </div>
         </a>
-
-        <a class="workflow-card" href="workflows/reusable-python-ci">
-          <div class="wf-filename">_managed-python-ci.yml</div>
-          <div class="wf-title">Python CI <span style="font-size:0.7rem;background:var(--success);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">NEW</span></div>
-          <div class="wf-desc"><strong>Recommended.</strong> Lint (ruff) → test (pytest) → build wheel with setuptools-scm version detection. Auto-detects version from git tags. Simpler than legacy CI — Python.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">ruff</span>
-            <span class="wf-tag">pytest</span>
-            <span class="wf-tag">setuptools-scm</span>
-            <span class="wf-tag">wheel</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/reusable-python-publish">
-          <div class="wf-filename">_managed-python-publish.yml</div>
-          <div class="wf-title">Python Publish <span style="font-size:0.7rem;background:var(--success);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">NEW</span></div>
-          <div class="wf-desc"><strong>Recommended.</strong> Branch-aware publishing with SBOM (CycloneDX), build provenance attestation (Sigstore), and release artifact upload. Publishes to PyPI/TestPyPI via OIDC. Full supply chain security.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">OIDC</span>
-            <span class="wf-tag">SBOM</span>
-            <span class="wf-tag">attestation</span>
-            <span class="wf-tag">PyPI</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/ci-python">
-          <div class="wf-filename">_managed-ci-python.yml</div>
-          <div class="wf-title">CI — Python <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span></div>
-          <div class="wf-desc">Lint (ruff) → test (pytest with PostgreSQL service) → build wheel. Requires manual version injection into <code>pyproject.toml</code>. Use <code>_managed-python-ci.yml</code> instead for new projects.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">ruff</span>
-            <span class="wf-tag">pytest</span>
-            <span class="wf-tag">postgres</span>
-            <span class="wf-tag">wheel</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/ci-docker">
-          <div class="wf-filename">_managed-ci-docker.yml</div>
-          <div class="wf-title">CI — Docker</div>
-          <div class="wf-desc">Lint → test → Docker build, with support for a multi-repo checkout (repo + dependency side-by-side). Optionally pushes the image on <code>main</code> and <code>develop</code>.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">ruff</span>
-            <span class="wf-tag">docker buildx</span>
-            <span class="wf-tag">multi-repo</span>
-            <span class="wf-tag">ghcr.io</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/auto-tag">
-          <div class="wf-filename">_managed-auto-tag.yml</div>
-          <div class="wf-title">Auto-tag</div>
-          <div class="wf-desc">Reads the highest <code>v*</code> tag in the repo and pushes a patch bump tag (<code>v0.1.3 → v0.1.4</code>) to the given commit SHA. Runs on <code>main</code> only.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">semver</span>
-            <span class="wf-tag">patch bump</span>
-            <span class="wf-tag">GH_PAT</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/docker-retag">
-          <div class="wf-filename">_managed-docker-retag.yml</div>
-          <div class="wf-title">Docker Retag</div>
-          <div class="wf-desc">Promotes an existing image to a release tag using <code>docker buildx imagetools create</code> — a manifest-only operation. No rebuild, no digest mismatch between CI and production.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">imagetools</span>
-            <span class="wf-tag">no rebuild</span>
-            <span class="wf-tag">promotion</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/publish-pypi">
-          <div class="wf-filename">_managed-publish-pypi.yml</div>
-          <div class="wf-title">Publish PyPI <span style="font-size:0.7rem;background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px">LEGACY</span></div>
-          <div class="wf-desc">Downloads a pre-built wheel and publishes to PyPI/TestPyPI via OIDC Trusted Publishing. Basic publishing without supply chain security. Use <code>_managed-python-publish.yml</code> instead for new projects (includes SBOM + attestation).</div>
-          <div class="wf-tags">
-            <span class="wf-tag">OIDC</span>
-            <span class="wf-tag">twine</span>
-            <span class="wf-tag">PyPI</span>
-            <span class="wf-tag">TestPyPI</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/docker-build">
-          <div class="wf-filename">_managed-docker-build.yml</div>
-          <div class="wf-title">Docker Build</div>
-          <div class="wf-desc">Builds a Docker image and optionally pushes to registry. Supports multi-platform builds via <code>docker buildx</code>. Suitable as an alternative to or alongside <code>_managed-ci-docker.yml</code>.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">docker buildx</span>
-            <span class="wf-tag">multi-platform</span>
-            <span class="wf-tag">registry push</span>
-          </div>
-        </a>
-
-        <a class="workflow-card" href="workflows/release-gh">
-          <div class="wf-filename">_managed-release-gh.yml</div>
-          <div class="wf-title">GitHub Release</div>
-          <div class="wf-desc">Creates a GitHub Release for a given tag, auto-detects stable vs pre-release from the tag name, and optionally attaches a build artifact as a release asset.</div>
-          <div class="wf-tags">
-            <span class="wf-tag">release notes</span>
-            <span class="wf-tag">asset upload</span>
-            <span class="wf-tag">pre-release</span>
-          </div>
-        </a>
-
+        {% endfor %}
+        {% endfor %}
       </div>
     </div>
   </section>
@@ -655,43 +554,16 @@
       </p>
 
       <div class="actions-grid">
-
-        <a class="action-card" href="actions/setup-python-env">
+        {% for action in site.data.generated.actions.actions %}
+        <a class="action-card" href="{{ action.url }}">
           <div class="action-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
           </div>
-          <div class="action-title">Setup Python Environment</div>
-          <div class="action-desc">Installs Python, configures pip caching keyed on your requirements file, installs dependencies, and runs an optional extra install command.</div>
-          <div class="action-usage">uses: ITlusions/ITL.Github/actions/setup-python-env@main</div>
+          <div class="action-title">{{ action.title }}</div>
+          {% if action.description != "" %}<div class="action-desc">{{ action.description }}</div>{% endif %}
+          <div class="action-usage">uses: ITlusions/ITL.Github/actions/{{ action.slug }}@main</div>
         </a>
-
-        <a class="action-card" href="actions/detect-release-type">
-          <div class="action-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </div>
-          <div class="action-title">Detect Release Type</div>
-          <div class="action-desc">Inspects a semver version string and outputs <code>prerelease=true/false</code> and <code>release-type=stable/pre-release</code>. Used internally by the publish workflow.</div>
-          <div class="action-usage">uses: ITlusions/ITL.Github/actions/detect-release-type@main</div>
-        </a>
-
-        <a class="action-card" href="actions/python-publish">
-          <div class="action-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-          </div>
-          <div class="action-title">Python Publish</div>
-          <div class="action-desc">Complete build-to-publish pipeline: build wheel, generate SBOM (CycloneDX), create build provenance attestation (Sigstore), publish to PyPI/TestPyPI via OIDC, and optionally upload artifacts to GitHub Release.</div>
-          <div class="action-usage">uses: ITlusions/ITL.Github/actions/python-publish@main</div>
-        </a>
-
-        <a class="action-card" href="actions/dependabot-auto-merge">
-          <div class="action-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e40c9" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-          </div>
-          <div class="action-title">Dependabot Auto-Merge</div>
-          <div class="action-desc">Automatically merges Dependabot pull requests based on update type (patch, minor, major). Configurable merge strategy (squash, merge, rebase) and filtering by update types.</div>
-          <div class="action-usage">uses: ITlusions/ITL.Github/actions/dependabot-auto-merge@main</div>
-        </a>
-
+        {% endfor %}
       </div>
     </div>
   </section>
@@ -812,77 +684,77 @@
             <div class="doc-desc">@main vs pinned refs, breaking changes</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/detect-version">
+        <a class="doc-link" href="reference/workflows/detect-version">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
           <div>
             <div class="doc-title">Detect Version</div>
             <div class="doc-desc">Semver from branch + git tags</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/ci-python">
+        <a class="doc-link" href="reference/workflows/ci-python">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
           <div>
             <div class="doc-title">CI — Python</div>
             <div class="doc-desc">Lint + test + wheel build</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/ci-docker">
+        <a class="doc-link" href="reference/workflows/ci-docker">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
           <div>
             <div class="doc-title">CI — Docker</div>
             <div class="doc-desc">Multi-repo build + optional push</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/auto-tag">
+        <a class="doc-link" href="reference/workflows/auto-tag">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
           <div>
             <div class="doc-title">Auto-tag</div>
             <div class="doc-desc">Patch bump on main</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/docker-retag">
+        <a class="doc-link" href="reference/workflows/docker-retag">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
           <div>
             <div class="doc-title">Docker Retag</div>
             <div class="doc-desc">Promote without rebuilding</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/publish-pypi">
+        <a class="doc-link" href="reference/workflows/publish-pypi">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg></div>
           <div>
             <div class="doc-title">Publish PyPI</div>
             <div class="doc-desc">OIDC Trusted Publishing</div>
           </div>
         </a>
-        <a class="doc-link" href="workflows/release-gh">
+        <a class="doc-link" href="reference/workflows/release-gh">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
           <div>
             <div class="doc-title">GitHub Release</div>
             <div class="doc-desc">Create release with assets</div>
           </div>
         </a>
-        <a class="doc-link" href="actions/setup-python-env">
+        <a class="doc-link" href="reference/actions/setup-python-env">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
           <div>
             <div class="doc-title">Setup Python Env</div>
             <div class="doc-desc">Composite action</div>
           </div>
         </a>
-        <a class="doc-link" href="actions/detect-release-type">
+        <a class="doc-link" href="reference/actions/detect-release-type">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           <div>
             <div class="doc-title">Detect Release Type</div>
             <div class="doc-desc">Stable vs pre-release</div>
           </div>
         </a>
-        <a class="doc-link" href="actions/python-publish">
+        <a class="doc-link" href="reference/actions/python-publish">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
           <div>
             <div class="doc-title">Python Publish</div>
             <div class="doc-desc">Build + SBOM + attest + publish</div>
           </div>
         </a>
-        <a class="doc-link" href="actions/dependabot-auto-merge">
+        <a class="doc-link" href="reference/actions/dependabot-auto-merge">
           <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
           <div>
             <div class="doc-title">Dependabot Auto-Merge</div>
