@@ -155,6 +155,17 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
 
+      - name: Create GitHub Release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.detect-version.outputs.version }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --prerelease --generate-notes
+          fi
+
   # ---------------------------------------------------------------------------
   # 3. Update floating tags — main only (e.g. v1 → latest v1.x.x, latest → newest release)
   #    Allows consumers to pin to a major version: @v1, or to the newest release: @latest
