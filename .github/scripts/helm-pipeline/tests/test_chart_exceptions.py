@@ -3,6 +3,7 @@
 import json
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -15,6 +16,9 @@ trivy:
   misconfigurations:
     - id: AVD-KSV-0014
       statement: Read-only root filesystem is not supported by the image.
+      owner: team-platform
+      expires: 2030-01-31
+      request: ITlusions/spotinfo-helm-charts#42
 kubescape:
   - name: allow-root-filesystem
     policyType: postureExceptionPolicy
@@ -23,7 +27,11 @@ kubescape:
     resources: []
     posturePolicies:
       - controlID: C-0017
+    owner: team-platform
+    expires: 2030-01-31
+    request: ITlusions/spotinfo-helm-charts#42
 """
+TODAY = date(2026, 11, 23)
 
 
 class ChartExceptionsTest(unittest.TestCase):
@@ -81,7 +89,8 @@ class ChartExceptionsTest(unittest.TestCase):
             chart = root / 'charts' / 'demo'
             chart.mkdir(parents=True)
             entry = {'name': 'allow-root-filesystem', 'posturePolicies': [{'controlID': 'C-0017'}]}
-            (chart / 'exceptions.json').write_text(json.dumps({'kubescape': [entry]}), encoding='utf-8')
+            metadata = {'owner': 'team-platform', 'expires': '2030-01-31', 'request': 'ITlusions/spotinfo-helm-charts#42'}
+            (chart / 'exceptions.json').write_text(json.dumps({'kubescape': [{**entry, **metadata}]}), encoding='utf-8')
             path = Path(ChartExceptions(root, None).kubescape_exception_file('demo', output))
             self.assertEqual(json.loads(path.read_text(encoding='utf-8')), [entry])
 
@@ -106,6 +115,61 @@ class ChartExceptionsTest(unittest.TestCase):
             statements,
             {'AVD-KSV-0014': 'Read-only root filesystem is not supported by the image.'},
         )
+
+    def test_exclusion_without_owner_expiry_or_request_is_rejected(self):
+        """Test that an exclusion missing its owner, expiry or request fails instead of being applied silently."""
+        content = 'trivy:\n  misconfigurations:\n    - id: AVD-KSV-0014\n      statement: No metadata.\n'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            self.write_chart_file(root, content)
+            with self.assertRaises(RuntimeError):
+                ChartExceptions(root, None, today=TODAY).exclusions('demo')
+
+    def test_exclusion_with_invalid_expiry_date_is_rejected(self):
+        """Test that an exclusion whose expiry is not an ISO date fails the scan."""
+        content = (
+            'trivy:\n  misconfigurations:\n    - id: AVD-KSV-0014\n      statement: Bad date.\n'
+            '      owner: team-platform\n      expires: next-year\n      request: 42\n'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            self.write_chart_file(root, content)
+            with self.assertRaises(RuntimeError):
+                ChartExceptions(root, None, today=TODAY).exclusions('demo')
+
+    def test_expired_exclusion_is_left_out_of_the_ignorefile_and_reported_as_expired(self):
+        """Test that an exclusion past its expiry no longer suppresses its finding and is reported as expired."""
+        content = (
+            'trivy:\n  misconfigurations:\n    - id: AVD-KSV-0014\n      statement: Old exclusion.\n'
+            '      owner: team-platform\n      expires: 2020-01-31\n      request: 42\n'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            output = root / 'out'
+            output.mkdir()
+            self.write_chart_file(root, content)
+            exceptions = ChartExceptions(root, None, today=TODAY)
+            ignorefile = exceptions.trivy_ignorefile('demo', output)
+            rows = exceptions.exclusions('demo')
+        self.assertIsNone(ignorefile)
+        self.assertEqual(rows[0]['status'], 'expired')
+        self.assertEqual(rows[0]['owner'], 'team-platform')
+        self.assertEqual(rows[0]['request'], '42')
+
+    def test_active_exclusion_reports_owner_expiry_and_request_for_the_summary(self):
+        """Test that every exclusion row carries its owner, expiry date and request for the job summary."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            self.write_chart_file(root, EXCEPTION_FILE)
+            rows = ChartExceptions(root, None, today=TODAY).exclusions('demo')
+        self.assertEqual([row['scanner'] for row in rows], ['trivy', 'kubescape'])
+        self.assertEqual(rows[1]['detail'], 'allow-root-filesystem')
+        self.assertEqual(rows[1]['id'], 'C-0017')
+        for row in rows:
+            self.assertEqual(row['status'], 'active')
+            self.assertEqual(row['owner'], 'team-platform')
+            self.assertEqual(row['expires'], '2030-01-31')
+            self.assertEqual(row['request'], 'ITlusions/spotinfo-helm-charts#42')
 
 
 if __name__ == '__main__':

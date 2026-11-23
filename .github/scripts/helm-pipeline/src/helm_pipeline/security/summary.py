@@ -3,8 +3,10 @@
 import json
 from pathlib import Path
 
+from helm_pipeline.security.chart_exceptions import ChartExceptions
 from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.reports import ERROR_REPORT
+from helm_pipeline.security.summary_layouts import DEFAULT_LAYOUT, ChartFindings, SummaryLayoutFactory
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
 GITLEAKS_REPORT = 'gitleaks.json'
@@ -15,7 +17,6 @@ KUBESCAPE_REPORT = 'kubescape.json'
 REPOSITORY_DIRECTORY = 'repository'
 RESULT_HEADERS = ['Scanner', 'Result', 'Detail']
 ERROR_HEADERS = ['Scanner', 'Message']
-CONTROL_HEADERS = ['Control', 'Name', 'Failed resources']
 SECRET_HEADERS = ['File', 'Line', 'Rule', 'Description']
 DEPENDENCY_HEADERS = ['Package', 'Version', 'Vulnerability', 'Fix versions']
 
@@ -23,15 +24,20 @@ DEPENDENCY_HEADERS = ['Package', 'Version', 'Vulnerability', 'Fix versions']
 class SecuritySummary:
     """Add the outcome of one security step to the GitHub job summary."""
 
-    def __init__(self, github, root):
-        """Store the GitHub file writer and the repository root that holds the report directory.
+    def __init__(self, github, root, layout=DEFAULT_LAYOUT):
+        """Store the GitHub file writer, the repository root and the chart summary layout.
 
         Args:
             github: A GitHubFiles instance.
             root: Repository root directory.
+            layout: Name of the chart summary layout: classic, flat, sections, counts or expiry.
+
+        Raises:
+            ValueError: When the layout name is unknown.
         """
         self.github = github
         self.root = Path(root)
+        self.layout = SummaryLayoutFactory().create(layout)
 
     def write(self, command, chart=None):
         """Write the summary for a finished security step; steps without a summary are ignored.
@@ -58,7 +64,9 @@ class SecuritySummary:
              f'{len(self.load_json(output / IMAGES_REPORT, []))} image(s)'),
         ]
         self.github.append_table(f'Chart security: {Path(chart).name}', RESULT_HEADERS, rows)
-        self.write_failing_controls(output / KUBESCAPE_REPORT)
+        findings = ChartFindings(KubescapeReport(output / KUBESCAPE_REPORT).failing_controls(),
+                                 ChartExceptions(self.root, self.github).exclusions(Path(chart).name))
+        self.layout.render(self.github, Path(chart).name, findings)
         self.write_errors(errors)
 
     def secrets(self):
@@ -115,17 +123,6 @@ class SecuritySummary:
     def errors(self, directory):
         """Return the scanner errors recorded in a report directory."""
         return self.load_json(directory / ERROR_REPORT, [])
-
-    def write_failing_controls(self, report):
-        """Add a table of the failed Kubescape controls to the job summary when there are any.
-
-        Args:
-            report: Path to the Kubescape JSON report.
-        """
-        controls = KubescapeReport(report).failing_controls()
-        if controls:
-            self.github.append_table('Kubescape failing controls', CONTROL_HEADERS,
-                                     [(item['id'], item['name'], str(item['resources'])) for item in controls])
 
     def write_errors(self, errors):
         """Add a table of scanner errors to the job summary when there are any."""
