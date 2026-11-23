@@ -32,13 +32,14 @@ DEPENDENCY_HEADERS = ['Package', 'Version', 'Vulnerability', 'Fix versions']
 class SecuritySummary:
     """Add the outcome of one security step to the GitHub job summary."""
 
-    def __init__(self, github, root, layout=DEFAULT_LAYOUT):
-        """Store the GitHub file writer, the repository root and the chart summary layout.
+    def __init__(self, github, root, layout=DEFAULT_LAYOUT, verifier=None):
+        """Store the GitHub file writer, the repository root, the chart summary layout and the signature verifier.
 
         Args:
             github: A GitHubFiles instance.
             root: Repository root directory.
             layout: Name of the chart summary layout: classic, flat, sections, counts or expiry.
+            verifier: An ExceptionSignatureVerifier used when reading exceptions, or None to skip verification.
 
         Raises:
             ValueError: When the layout name is unknown.
@@ -46,6 +47,7 @@ class SecuritySummary:
         self.github = github
         self.root = Path(root)
         self.layout = SummaryLayoutFactory().create(layout)
+        self.verifier = verifier
 
     def write(self, command, chart=None):
         """Write the summary for a finished security step; steps without a summary are ignored.
@@ -66,7 +68,7 @@ class SecuritySummary:
         name = Path(chart).name
         output = self.root / 'dist' / 'security' / name
         errors = self.errors(output)
-        exceptions = ChartExceptions(self.root, self.github)
+        exceptions = ChartExceptions(self.root, self.github, verifier=self.verifier)
         exclusions = exceptions.exclusions(name)
         findings = ChartFindings(KubescapeReport(output / KUBESCAPE_REPORT).failing_controls(), exclusions)
         blocking = findings.with_status(STATUS_BLOCKING)

@@ -1,0 +1,9 @@
+# Exclusions and skips need review from the platform team.
+# Enforced only when branch protection requires review from code owners.
+charts/*/exceptions.yaml @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin
+charts/*/exceptions.yml @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin
+charts/*/exceptions.json @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin
+charts/*/exceptions.yaml.sigstore.json @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin
+charts/*/.ciignore @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin
+security/exceptions/ @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin
+.github/workflows/ @ITlusions/platform @ITlusions/security-admin @ITlusions/platform-admin

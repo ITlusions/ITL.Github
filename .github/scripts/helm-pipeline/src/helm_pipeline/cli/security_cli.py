@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from helm_pipeline.core.logging_config import configure_logging
+from helm_pipeline.security.exception_signature import ExceptionSignatureVerifier
 from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.pipeline import SecurityPipeline
 from helm_pipeline.security.pipeline_cost import PipelineCost
@@ -51,9 +52,11 @@ class SecurityCli:
         configure_logging()
         if args.command == 'chart' and not args.chart:
             parser.error('chart or CHART is required')
-        pipeline = SecurityPipeline(Path.cwd())
+        verify = os.environ.get('SECURITY_VERIFY_EXCEPTIONS', 'false').lower() == 'true'
+        pipeline = SecurityPipeline(Path.cwd(), verify_exceptions=verify)
         summary = SecuritySummary(pipeline.github, pipeline.root,
-                                  os.environ.get('SECURITY_SUMMARY_LAYOUT', DEFAULT_LAYOUT))
+                                  os.environ.get('SECURITY_SUMMARY_LAYOUT', DEFAULT_LAYOUT),
+                                  verifier=ExceptionSignatureVerifier() if verify else None)
         try:
             self.dispatch(args, pipeline)
         except subprocess.CalledProcessError as error:

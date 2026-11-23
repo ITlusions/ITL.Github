@@ -21,17 +21,19 @@ STATUS_EXPIRED = 'expired'
 class ChartExceptions:
     """Locate and split the exception file of a chart into the Trivy and Kubescape inputs."""
 
-    def __init__(self, root, github, today=None):
+    def __init__(self, root, github, today=None, verifier=None):
         """Store the repository root, the GitHub file writer and the date used to judge expiry.
 
         Args:
             root: Repository root that contains the security directory.
             github: A GitHubFiles instance.
             today: Date that exclusions are compared against; defaults to the current date.
+            verifier: An ExceptionSignatureVerifier that must accept each file, or None to skip verification.
         """
         self.root = Path(root)
         self.github = github
         self.today = today or date.today()
+        self.verifier = verifier
 
     def path_for(self, name):
         """Return the exception file of a chart from its root or the security folder, or None when it has none."""
@@ -47,6 +49,8 @@ class ChartExceptions:
         path = self.path_for(name)
         if path is None:
             return {}
+        if self.verifier is not None:
+            self.verifier.verify(path)
         return yaml.safe_load(path.read_text(encoding='utf-8')) or {}
 
     def applied_trivy(self, name):
