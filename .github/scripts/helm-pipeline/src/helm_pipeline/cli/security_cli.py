@@ -1,15 +1,20 @@
 """Command-line entry point for the security scans. Holds argument parsing only and delegates each step to SecurityPipeline."""
 
 import argparse
+import logging
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 from helm_pipeline.core.logging_config import configure_logging
+from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.pipeline import SecurityPipeline
-from helm_pipeline.security.summary import SecuritySummary
+from helm_pipeline.security.summary import KUBESCAPE_REPORT, SecuritySummary
 from helm_pipeline.security.tools import SecurityToolInstaller
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
+LOGGER = logging.getLogger(__name__)
 
 
 class SecurityCli:
@@ -45,8 +50,31 @@ class SecurityCli:
         summary = SecuritySummary(pipeline.github, pipeline.root)
         try:
             self.dispatch(args, pipeline)
+        except subprocess.CalledProcessError as error:
+            self.log_failing_controls(args, pipeline)
+            LOGGER.error('Security scan stopped: %s exited with code %s. Review the findings above.',
+                         ' '.join(str(part) for part in error.cmd[:2]), error.returncode)
+            sys.exit(1)
+        except Exception as error:
+            LOGGER.error('Security scan failed: %s', error)
+            LOGGER.debug('Traceback for the failure above', exc_info=True)
+            sys.exit(1)
         finally:
             summary.write(args.command, getattr(args, 'chart', None))
+
+    def log_failing_controls(self, args, pipeline):
+        """Log each failed Kubescape control of a chart scan in plain words.
+
+        Args:
+            args: Parsed arguments; only chart scans have Kubescape controls to report.
+            pipeline: SecurityPipeline whose root holds the report directory.
+        """
+        if args.command != 'chart':
+            return
+        report = pipeline.root / 'dist' / 'security' / Path(args.chart).name / KUBESCAPE_REPORT
+        for control in KubescapeReport(report).failing_controls():
+            LOGGER.error('Kubescape control %s (%s) failed on %s resource(s)',
+                         control['id'], control['name'], control['resources'])
 
     def dispatch(self, args, pipeline):
         """Run the step named by the parsed arguments on the pipeline."""

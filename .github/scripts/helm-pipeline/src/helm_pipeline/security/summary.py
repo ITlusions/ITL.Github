@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.reports import ERROR_REPORT
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
@@ -14,6 +15,7 @@ KUBESCAPE_REPORT = 'kubescape.json'
 REPOSITORY_DIRECTORY = 'repository'
 RESULT_HEADERS = ['Scanner', 'Result', 'Detail']
 ERROR_HEADERS = ['Scanner', 'Message']
+CONTROL_HEADERS = ['Control', 'Name', 'Failed resources']
 SECRET_HEADERS = ['File', 'Line', 'Rule', 'Description']
 DEPENDENCY_HEADERS = ['Package', 'Version', 'Vulnerability', 'Fix versions']
 
@@ -56,6 +58,7 @@ class SecuritySummary:
              f'{len(self.load_json(output / IMAGES_REPORT, []))} image(s)'),
         ]
         self.github.append_table(f'Chart security: {Path(chart).name}', RESULT_HEADERS, rows)
+        self.write_failing_controls(output / KUBESCAPE_REPORT)
         self.write_errors(errors)
 
     def secrets(self):
@@ -112,6 +115,17 @@ class SecuritySummary:
     def errors(self, directory):
         """Return the scanner errors recorded in a report directory."""
         return self.load_json(directory / ERROR_REPORT, [])
+
+    def write_failing_controls(self, report):
+        """Add a table of the failed Kubescape controls to the job summary when there are any.
+
+        Args:
+            report: Path to the Kubescape JSON report.
+        """
+        controls = KubescapeReport(report).failing_controls()
+        if controls:
+            self.github.append_table('Kubescape failing controls', CONTROL_HEADERS,
+                                     [(item['id'], item['name'], str(item['resources'])) for item in controls])
 
     def write_errors(self, errors):
         """Add a table of scanner errors to the job summary when there are any."""
