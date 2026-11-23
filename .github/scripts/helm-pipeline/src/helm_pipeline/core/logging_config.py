@@ -1,4 +1,3 @@
-# AI generated code: GitHub Copilot Claude Haiku 5.5
 """Configure logging for the CI scripts so progress messages go to stderr and stdout stays free for data."""
 
 import logging

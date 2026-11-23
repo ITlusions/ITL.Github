@@ -4,8 +4,10 @@ name: Helm Publish — OCI (reusable)
 # Reusable workflow: push a packaged Helm chart to an OCI registry
 #
 # Reuses the chart artifact produced by the Helm CI workflow for the same
-# commit, so the published chart is the one that passed CI. When no CI run
-# is found and fallback-build is true, the chart is built from source.
+# commit, so the published chart is the one that passed CI. The gate is per chart:
+# the artifact exists only when that chart passed its own checks, and its security
+# scan must have passed in the same run. Other charts in the run do not block it.
+# fallback-build is an explicit opt-out.
 #
 # Usage:
 #   jobs:
@@ -60,10 +62,10 @@ on:
         type: string
         default: "Helm CI — Branch push"
       fallback-build:
-        description: "Build the chart from source when no CI artifact is found"
+        description: "Build the chart from source when no CI artifact is found (bypasses the CI gate; avoid in production)"
         required: false
         type: boolean
-        default: true
+        default: false
 
     secrets:
       gh-pat:
@@ -103,9 +105,18 @@ jobs:
           COMMIT_SHA: ${{ inputs.commit-sha }}
           CI_WORKFLOW: ${{ inputs.ci-workflow-name }}
         run: |
+          # Any completed run is accepted: a failing chart elsewhere in the run must not block this chart.
           run_id=$(gh run list --commit "$COMMIT_SHA" --workflow "$CI_WORKFLOW" \
-            --status success --limit 1 --json databaseId --jq '.[0].databaseId // ""')
+            --status completed --limit 1 --json databaseId --jq '.[0].databaseId // ""')
           echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Require CI run
+        if: steps.find-run.outputs.run-id == '' && !inputs.fallback-build
+        env:
+          COMMIT_SHA: ${{ inputs.commit-sha }}
+        run: |
+          echo "No CI run found for $COMMIT_SHA; refusing to publish" >&2
+          exit 1
 
       - name: Download chart artifact from CI run
         if: steps.find-run.outputs.run-id != ''
@@ -122,6 +133,33 @@ jobs:
         with:
           ref: ${{ inputs.commit-sha }}
           fetch-depth: 0
+
+      # AI generated code: GitHub Copilot Claude Haiku 5.5
+      # Runs after checkout so that the chart's .ciconfig at the published commit is available.
+      - name: Require passing security scan for chart
+        if: steps.find-run.outputs.run-id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ steps.find-run.outputs.run-id }}
+          CHART_PATH: ${{ inputs.chart-path }}
+        run: |
+          chart=$(basename "$CHART_PATH")
+          config="$CHART_PATH/.ciconfig"
+          # Only an explicit opt-out of both scanners skips the check; no scan job exists for such a chart.
+          if [ -f "$config" ] \
+            && grep -Eq '^trivy:[[:space:]]*false\b' "$config" \
+            && grep -Eq '^kubescape:[[:space:]]*false\b' "$config"; then
+            echo "Trivy and Kubescape are both disabled for $chart in .ciconfig; skipping the security scan check"
+            exit 0
+          fi
+          conclusions=$(gh run view "$RUN_ID" --repo "$REPO" --json jobs \
+            --jq '.jobs[] | select(.name | endswith("Scan '"$chart"'")) | .conclusion')
+          # Fails closed: a missing scan job is treated as not passed.
+          if [ -z "$conclusions" ] || echo "$conclusions" | grep -qvx success; then
+            echo "Security scan for $chart did not pass in run $RUN_ID; refusing to publish" >&2
+            exit 1
+          fi
 
       - name: Set up Helm
         if: steps.find-run.outputs.run-id == '' && inputs.fallback-build

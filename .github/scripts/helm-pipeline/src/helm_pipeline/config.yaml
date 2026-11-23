@@ -1,0 +1,23 @@
+# Pinned tool releases used by helm_pipeline. Every download is verified against its SHA-256 digest before use.
+tools:
+  kubeconform:
+    url: https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz
+    sha256: c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3
+  helm-unittest:
+    url: https://github.com/helm-unittest/helm-unittest/releases/download/v1.2.1/helm-unittest-linux-amd64-1.2.1.tgz
+    sha256: 48e86ecc1467b009630e5954375e5d8494139f73b466df5fe8c04fa45b634939
+  kind:
+    url: https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
+    sha256: aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+  kubectl:
+    url: https://dl.k8s.io/release/v1.36.5/bin/linux/amd64/kubectl
+    sha256: 33bc88a24c3b09cf55bfd59e6ca977881b61fc3f25ab65bc80c65b430248648e
+  trivy:
+    url: https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.tar.gz
+    sha256: bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
+  gitleaks:
+    url: https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+    sha256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+  kubescape:
+    url: https://github.com/kubescape/kubescape/releases/download/v4.0.21/kubescape_4.0.21_linux_amd64.tar.gz
+    sha256: f901b27b3143441eff8a1c57216794b0765df6e322fd62fb82f81c1c314086ae

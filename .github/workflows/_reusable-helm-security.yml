@@ -59,7 +59,7 @@ jobs:
         run: echo "name=chart-security-$CHART" >> "$GITHUB_OUTPUT"
 
       - name: Install security tools
-        run: security-scan setup-tools --directory dist/tools --tool trivy
+        run: security-scan setup-tools --directory dist/tools --tool trivy --tool kubescape
 
       - name: Scan chart
         env:

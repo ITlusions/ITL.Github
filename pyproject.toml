@@ -10,8 +10,8 @@ requires-python = ">=3.10"
 dependencies = ["PyYAML"]
 
 [project.scripts]
-chart-pipeline = "helm_pipeline.chart_pipeline:main"
-security-scan = "helm_pipeline.security_scan:main"
+chart-pipeline = "helm_pipeline.cli.chart_cli:main"
+security-scan = "helm_pipeline.cli.security_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = [".github/scripts/helm-pipeline/src/helm_pipeline"]

@@ -61,7 +61,7 @@ $skippedLinks = 0
 $linkPattern = '\[([^\]]+)\]\(([^)]+)\)'
 
 foreach ($mdFile in $mdFiles) {
-    $relativePath = $mdFile.FullName.Replace($RepoRoot, '').TrimStart('\', '/')
+    $relativePath = $mdFile.FullName.Replace($RepoRoot, '').TrimStart('\', '/').Replace('\', '/')
     $content = Get-Content -Path $mdFile.FullName -Raw -ErrorAction SilentlyContinue
     
     if (-not $content) { continue }

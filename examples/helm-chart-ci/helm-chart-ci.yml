@@ -10,11 +10,13 @@ name: Helm Chart CI
 on:
   push:
     branches:
+      - main
       - develop
       - "feature/**"
   pull_request:
     branches:
       - develop
+      - main
   schedule:
     - cron: "0 3 * * 1"
   workflow_dispatch:
@@ -41,7 +43,7 @@ jobs:
     with:
       full-scan: ${{ github.event_name == 'schedule' || inputs.full-scan == true }}
       chart: ${{ inputs.chart || '' }}
-      default-kube-version: "1.37.1"
-      scheduled-kube-versions: '["1.36.5","1.37.1"]'
+      default-kube-version: "1.36.4"
+      scheduled-kube-versions: '["1.36.4"]'
     permissions:
       contents: read

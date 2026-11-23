@@ -1,15 +1,21 @@
 name: Helm Publish
 
 # ---------------------------------------------------------------------------
-# Example caller: on push to main, publishes every chart changed in the push and
-# creates its chart/<name>/v<version> release tag. Calls the reusable publish
-# workflow once per changed chart.
+# Example caller: after Helm Chart CI succeeds on main, publishes every chart changed
+# in the promoted commit and creates its chart/<name>/v<version> release tag. Calls
+# the reusable publish workflow once per changed chart.
 #
-# Decision: only charts directly changed in the push are published. Charts that
-# only depend on a changed chart are not republished, because their content did not change.
+# Decision: only charts directly changed in the push are published. A dependent of a
+# changed chart is not republished automatically. Its owner must bump its patch version,
+# run helm dependency update, and commit the new Chart.lock. The Helm Chart CI blocks
+# a stale Chart.lock, so a dependent cannot publish with an outdated vendored dependency.
 # ---------------------------------------------------------------------------
 on:
-  push:
+  workflow_run:
+    workflows:
+      - "Helm Chart CI"
+    types:
+      - completed
     branches:
       - main
 
@@ -31,6 +37,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -43,9 +50,7 @@ jobs:
 
       - name: Find changed charts
         id: changed
-        env:
-          BASE_SHA: ${{ github.event.before }}
-        run: chart-pipeline changed --base "$BASE_SHA"
+        run: chart-pipeline changed --base HEAD~1
 
   publish:
     name: Publish ${{ matrix.chart }}
@@ -57,10 +62,11 @@ jobs:
         chart: ${{ fromJSON(needs.detect.outputs.charts) }}
     uses: ITlusions/ITL.Github/.github/workflows/_reusable-helm-publish.yml@main
     with:
-      commit-sha: ${{ github.sha }}
+      commit-sha: ${{ github.event.workflow_run.head_sha }}
       chart-path: ${{ matrix.chart }}
       environment: "production"
       ci-workflow-name: "Helm Chart CI"
+      artifact-name: helm-chart-${{ matrix.chart }}-basic-1.36.4
     secrets: inherit
     permissions:
       contents: write
