@@ -53,5 +53,5 @@ class ScanReport:
         try:
             return commands.run(args)
         except subprocess.CalledProcessError as error:
-            self.record_error(scanner, str(error))
+            self.record_error(scanner, f'exited with code {error.returncode}; see the findings above')
             raise

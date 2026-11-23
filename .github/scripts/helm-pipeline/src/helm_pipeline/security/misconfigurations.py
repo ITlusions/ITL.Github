@@ -39,13 +39,19 @@ class MisconfigurationReport:
         return findings
 
     def log(self, name, report):
-        """Log each blocking misconfiguration and add a job summary table."""
+        """Log each blocking misconfiguration with a fix hint and add a job summary table."""
         if not report.is_file():
-            LOGGER.error('%s: no Trivy report at %s', name, report)
+            LOGGER.error('%s: the Trivy report is missing at %s, so the scan result is unknown', name, report)
             return
         findings = self.read(report)
         for severity, identifier, target, resource, title in findings:
-            LOGGER.error('%s: %s %s %s %s: %s', name, severity, identifier, target, resource, title)
+            LOGGER.error('%s: %s %s "%s" in %s (resource: %s)', name, severity, identifier, title, target, resource)
+        if findings:
+            LOGGER.error(
+                '%s: %d blocking misconfiguration(s). Fix them, or accept a finding by adding its ID under '
+                'trivy.misconfigurations in charts/%s/exceptions.yaml with a statement.',
+                name, len(findings), name,
+            )
         self.github.append_table(f'Trivy misconfigurations: {name}', FINDING_HEADERS, findings)
 
     def log_excluded(self, name, report, statements):

@@ -1,7 +1,10 @@
 """Command-line entry point for the security scans. Holds argument parsing only and delegates each step to SecurityPipeline."""
 
 import argparse
+import logging
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 from helm_pipeline.core.logging_config import configure_logging
@@ -10,6 +13,7 @@ from helm_pipeline.security.summary import SecuritySummary
 from helm_pipeline.security.tools import SecurityToolInstaller
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
+LOGGER = logging.getLogger(__name__)
 
 
 class SecurityCli:
@@ -45,6 +49,10 @@ class SecurityCli:
         summary = SecuritySummary(pipeline.github, pipeline.root)
         try:
             self.dispatch(args, pipeline)
+        except subprocess.CalledProcessError as error:
+            LOGGER.error('Security scan stopped: %s exited with code %s. Review the findings above.',
+                         ' '.join(str(part) for part in error.cmd[:2]), error.returncode)
+            sys.exit(1)
         finally:
             summary.write(args.command, getattr(args, 'chart', None))
 
