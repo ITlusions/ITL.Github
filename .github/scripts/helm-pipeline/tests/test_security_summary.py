@@ -64,6 +64,19 @@ class SecuritySummaryTest(unittest.TestCase):
         self.assertIn('### Scanner errors', summary)
         self.assertIn('| kubescape | exit code 1 |', summary)
 
+    def test_that_chart_summary_lists_failed_kubescape_controls(self):
+        """Test that the chart summary names each failed Kubescape control with its failed resource count."""
+        output = self.root / 'dist' / 'security' / 'my-chart'
+        self.write_json(output / 'kubescape.json', {'summaryDetails': {'controls': {
+            'C-0270': {'name': 'Resource limits', 'status': {'status': 'failed'},
+                       'resourceCounters': {'failedResources': 2}}}}})
+
+        self.summary.write('chart', 'my-chart')
+
+        summary = self.read_summary()
+        self.assertIn('### Kubescape failing controls', summary)
+        self.assertIn('| C-0270 | Resource limits | 2 |', summary)
+
     def test_that_secret_summary_lists_findings_without_secret_values(self):
         """Test that gitleaks findings appear with file and rule, and the scan exit error is hidden."""
         output = self.root / 'dist' / 'security' / 'repository'
