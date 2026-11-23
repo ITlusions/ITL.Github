@@ -33,8 +33,9 @@ on:
 permissions:
   contents: read
 
+# Keyed on SHA so push and pull_request runs for one commit dedupe, while every commit is tested.
 concurrency:
-  group: helm-ci-${{ github.ref }}
+  group: helm-ci-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
