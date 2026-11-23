@@ -49,7 +49,7 @@ jobs:
     name: Auto-tag
     needs: [validate, check-deadlinks]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ITLusions/ITL.Github/.github/workflows/_managed-auto-tag.yml@main
+    uses: ./.github/workflows/_managed-auto-tag.yml
     with:
       commit-sha: ${{ github.sha }}
 
