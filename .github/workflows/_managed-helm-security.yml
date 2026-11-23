@@ -24,6 +24,10 @@ on:
         description: "Job summary layout: classic, flat, sections, counts or expiry"
         type: string
         default: classic
+      verify-exceptions:
+        description: "Require a valid cosign signature bundle for each exception file (off by default)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -65,10 +69,15 @@ jobs:
       - name: Install security tools
         run: security-scan setup-tools --directory dist/tools --tool trivy --tool kubescape
 
+      - name: Install cosign
+        if: inputs.verify-exceptions
+        uses: sigstore/cosign-installer@v3
+
       - name: Scan chart
         env:
           CHART: ${{ inputs.chart }}
           SECURITY_SUMMARY_LAYOUT: ${{ inputs.summary-layout }}
+          SECURITY_VERIFY_EXCEPTIONS: ${{ inputs.verify-exceptions && 'true' || 'false' }}
         run: security-scan chart "$CHART"
 
       - name: Store security reports

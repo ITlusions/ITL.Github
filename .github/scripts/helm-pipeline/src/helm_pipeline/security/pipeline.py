@@ -13,6 +13,7 @@ from helm_pipeline.core.settings import ToolPins
 from helm_pipeline.core.tools import ToolInstaller
 from helm_pipeline.security.chart_exceptions import ChartExceptions
 from helm_pipeline.security.chart_scan import ChartScanner
+from helm_pipeline.security.exception_signature import ExceptionSignatureVerifier
 from helm_pipeline.security.images import ImageFinder
 from helm_pipeline.security.kubescape import KubescapeScanner
 from helm_pipeline.security.misconfigurations import MisconfigurationReport
@@ -27,13 +28,14 @@ from helm_pipeline.security.trivy import TrivyScanner
 class SecurityPipeline:
     """Compose the security scanners for one repository root and expose them as CI steps."""
 
-    def __init__(self, root, runner=subprocess.run, pins=None):
+    def __init__(self, root, runner=subprocess.run, pins=None, verify_exceptions=False):
         """Wire the scanners together for the repository root.
 
         Args:
             root: Repository root directory.
             runner: Callable that runs processes, injected for tests that need a different runner.
             pins: A ToolPins instance; loads the packaged config.yaml when omitted.
+            verify_exceptions: When True, every exception file must carry a valid cosign signature.
         """
         self.root = Path(root).resolve()
         self.commands = CommandRunner(self.root, runner)
@@ -48,10 +50,15 @@ class SecurityPipeline:
             ChartRenderer(self.commands, self.helm),
             TrivyScanner(self.commands, self.github),
             KubescapeScanner(self.commands),
-            ChartExceptions(self.root, self.github),
+            ChartExceptions(self.root, self.github, verifier=self.exception_verifier(verify_exceptions)),
             MisconfigurationReport(self.github),
             ImageFinder(),
         )
+
+    @staticmethod
+    def exception_verifier(enabled):
+        """Return a signature verifier when verification is enabled, otherwise None."""
+        return ExceptionSignatureVerifier() if enabled else None
 
     def setup_tools(self, directory, tools):
         """Install the named security tools into a directory and add it to PATH."""

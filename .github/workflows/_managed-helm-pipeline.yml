@@ -29,6 +29,10 @@ on:
         description: Job summary layout for security scans - classic, flat, sections, counts or expiry
         type: string
         default: classic
+      security-verify-exceptions:
+        description: Require a valid cosign signature bundle for each security exception file (off by default)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -143,6 +147,7 @@ jobs:
     with:
       chart: ${{ matrix.chart }}
       summary-layout: ${{ inputs.security-summary-layout }}
+      verify-exceptions: ${{ inputs.security-verify-exceptions }}
     permissions:
       contents: read
 
