@@ -41,14 +41,20 @@ class HelmClient:
         self.commands.run(['helm', 'repo', 'update'])
 
     def dependencies(self, chart, cwd=None):
-        """Build chart dependencies from Chart.lock, or update them when the lock file is missing."""
+        """Build chart dependencies from Chart.lock, re-resolving them when the lock file is missing or out of sync."""
         path = Path(chart)
         if not path.is_absolute():
             path = Path(cwd or self.commands.root) / path
-        command = 'build' if (path / 'Chart.lock').is_file() else 'update'
-        if command == 'update' and self.catalog.metadata(path).get('dependencies'):
-            LOGGER.warning('%s: Chart.lock is missing; dependencies are re-resolved', path.name)
-        self.commands.run(['helm', 'dependency', command, chart], cwd=cwd)
+        if not (path / 'Chart.lock').is_file():
+            if self.catalog.metadata(path).get('dependencies'):
+                LOGGER.warning('%s: Chart.lock is missing; dependencies are re-resolved', path.name)
+            self.commands.run(['helm', 'dependency', 'update', chart], cwd=cwd)
+            return
+        # AI generated code: GitHub Copilot Claude Haiku 5.5
+        result = self.commands.run(['helm', 'dependency', 'build', chart], cwd=cwd, check=False)
+        if result.returncode != 0:
+            LOGGER.warning('%s: Chart.lock is out of sync with Chart.yaml; regenerating it', path.name)
+            self.commands.run(['helm', 'dependency', 'update', chart], cwd=cwd)
 
     def lint(self, chart, values=None):
         """Lint a chart, optionally with a values file."""
