@@ -24,11 +24,11 @@ class KubescapeReportTest(unittest.TestCase):
         """Test that passed controls are skipped and failed controls are listed with name and failed resource count."""
         self.report.write_text(json.dumps({'summaryDetails': {'controls': {
             'C-0270': {'name': 'Resource limits', 'status': {'status': 'failed'},
-                       'resourceCounters': {'failedResources': 2}},
+                       'ResourceCounters': {'failedResources': 2}},
             'C-0050': {'name': 'Resources CPU limit', 'status': {'status': 'failed'},
-                       'resourceCounters': {'failedResources': 1}},
+                       'ResourceCounters': {'failedResources': 1}},
             'C-0001': {'name': 'Forbidden container', 'status': {'status': 'passed'},
-                       'resourceCounters': {'failedResources': 0}},
+                       'ResourceCounters': {'failedResources': 0}},
         }}}), encoding='utf-8')
 
         controls = KubescapeReport(self.report).failing_controls()
@@ -42,7 +42,7 @@ class KubescapeReportTest(unittest.TestCase):
         """Test that a control whose status is a plain string is read the same as a status object."""
         self.report.write_text(json.dumps({'summaryDetails': {'controls': {
             'C-0270': {'name': 'Resource limits', 'status': 'failed',
-                       'resourceCounters': {'failedResources': 3}},
+                       'ResourceCounters': {'failedResources': 3}},
             'C-0001': {'name': 'Forbidden container', 'status': 'passed'},
         }}}), encoding='utf-8')
 

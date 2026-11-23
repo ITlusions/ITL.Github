@@ -69,7 +69,7 @@ class SecuritySummaryTest(unittest.TestCase):
         output = self.root / 'dist' / 'security' / 'my-chart'
         self.write_json(output / 'kubescape.json', {'summaryDetails': {'controls': {
             'C-0270': {'name': 'Resource limits', 'status': {'status': 'failed'},
-                       'resourceCounters': {'failedResources': 2}}}}})
+                       'ResourceCounters': {'failedResources': 2}}}}})
 
         self.summary.write('chart', 'my-chart')
 

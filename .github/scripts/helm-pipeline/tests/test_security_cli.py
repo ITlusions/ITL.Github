@@ -38,9 +38,9 @@ class SecurityCliFailureLogTest(unittest.TestCase):
         """Test that every failed control is logged with its ID, name and failed resource count."""
         self.write_report({
             'C-0270': {'name': 'Resource limits', 'status': {'status': 'failed'},
-                       'resourceCounters': {'failedResources': 2}},
+                       'ResourceCounters': {'failedResources': 2}},
             'C-0001': {'name': 'Forbidden container', 'status': {'status': 'passed'},
-                       'resourceCounters': {'failedResources': 0}},
+                       'ResourceCounters': {'failedResources': 0}},
         })
         args = Namespace(command='chart', chart='charts/spotinfo-api-gateway')
 
@@ -55,7 +55,7 @@ class SecurityCliFailureLogTest(unittest.TestCase):
         """Test that scans other than a chart scan do not read a Kubescape report."""
         self.write_report({
             'C-0270': {'name': 'Resource limits', 'status': 'failed',
-                       'resourceCounters': {'failedResources': 1}},
+                       'ResourceCounters': {'failedResources': 1}},
         })
         args = Namespace(command='repository', chart=None)
 
