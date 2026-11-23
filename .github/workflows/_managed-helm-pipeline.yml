@@ -172,3 +172,36 @@ jobs:
 
       - name: Scan git history for secrets
         run: security-scan secrets
+
+  pipeline-cost:
+    name: Pipeline cost estimate
+    needs: [discover, helm-ci, chart-security, repository-secrets]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install CI requirements
+        run: |
+          python -m pip install -r requirements-ci.txt
+          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+
+      - name: Write total cost estimate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh run view "$RUN_ID" --repo "$REPOSITORY" --json jobs > jobs.json
+          security-scan pipeline-cost --jobs jobs.json

@@ -91,21 +91,6 @@ class SecuritySummaryTest(unittest.TestCase):
         self.assertIn('::warning title=Exclusion expiring: KSV-0014::trivy KSV-0014 in my-chart: expires in 5 day(s)',
                       stdout.getvalue())
 
-    def test_that_cost_estimate_rounds_the_scan_up_to_whole_billed_minutes(self):
-        """Test that the cost estimate bills a 90 second scan as two minutes and shows the estimated cost."""
-        self.summary.write('chart', 'my-chart', seconds=90)
-
-        summary = self.read_summary()
-        self.assertIn('### Cost estimate', summary)
-        self.assertIn('| Billed minutes | 2 |', summary)
-        self.assertIn('| Estimated cost | USD 0.0160 |', summary)
-
-    def test_that_no_cost_estimate_is_written_without_a_duration(self):
-        """Test that the cost estimate is only added when the duration of the step is known."""
-        self.summary.write('chart', 'my-chart')
-
-        self.assertNotIn('Cost estimate', self.read_summary())
-
     def test_that_chart_summary_reports_failed_scanner_and_lists_errors(self):
         """Test that a failed scanner is marked as failed and its error appears in the summary."""
         output = self.root / 'dist' / 'security' / 'my-chart'

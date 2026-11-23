@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from helm_pipeline.security.chart_exceptions import ChartExceptions
-from helm_pipeline.security.cost_estimate import CostEstimate
 from helm_pipeline.security.exclusion_audit import ExclusionAudit
 from helm_pipeline.security.kubescape_report import KubescapeReport
 from helm_pipeline.security.misconfigurations import MisconfigurationReport
@@ -48,13 +47,12 @@ class SecuritySummary:
         self.root = Path(root)
         self.layout = SummaryLayoutFactory().create(layout)
 
-    def write(self, command, chart=None, seconds=None):
+    def write(self, command, chart=None):
         """Write the summary for a finished security step; steps without a summary are ignored.
 
         Args:
             command: Name of the security-scan subcommand that ran.
             chart: Chart name or path, used by the chart command only.
-            seconds: Duration of the step; when given, an estimated runner cost is added.
         """
         if command == 'chart':
             self.chart(chart)
@@ -62,20 +60,6 @@ class SecuritySummary:
             self.secrets()
         elif command == 'dependencies':
             self.dependencies()
-        if seconds is not None:
-            self.cost(seconds)
-
-    def cost(self, seconds):
-        """Add the estimated runner cost of the scan step to the job summary."""
-        estimate = CostEstimate()
-        minutes = estimate.billed_minutes(seconds)
-        rows = [
-            ('Scan duration', f'{seconds:.0f} s'),
-            ('Billed minutes', str(minutes)),
-            ('Estimated cost', f'USD {estimate.cost(minutes):.4f}'),
-            ('Scope', 'scan step only; excludes checkout, setup and upload'),
-        ]
-        self.github.append_table('Cost estimate', ['Item', 'Value'], rows)
 
     def chart(self, chart):
         """Add the scanner results of one chart, and any scanner errors, to the job summary."""
