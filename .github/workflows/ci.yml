@@ -9,13 +9,15 @@ name: CI
 #   uses: ITLusions/ITL.Github/actions/fire-release-dispatch@v1.2.3
 #
 # Branch strategy:
-#   feature/**  → validate only
-#   main        → validate + auto-tag (patch bump)
+#   feature/**, hotfix/**, develop → validate + tag with the detect-version scheme
+#                                    (e.g. v0.1.2-feature-login.42+abc1234)
+#   main        → validate + auto-tag (patch bump) + GitHub Release
 # ---------------------------------------------------------------------------
 on:
   push:
     branches:
       - main
+      - develop
       - "feature/**"
       - "hotfix/**"
   pull_request:
@@ -92,11 +94,73 @@ jobs:
       commit-sha: ${{ github.sha }}
 
   # ---------------------------------------------------------------------------
-  # 3. Update major floating tag — main only (e.g. v1 → latest v1.x.x)
-  #    Allows consumers to pin to a major version: @v1
+  # 2b. Create GitHub Release for the new tag — main only
+  # ---------------------------------------------------------------------------
+  release:
+    name: GitHub Release
+    needs: auto-tag
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.auto-tag.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.auto-tag.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          fi
+
+  # ---------------------------------------------------------------------------
+  # 2c. Detect version for non-main branches (same scheme as _reusable-detect-version.yml)
+  # ---------------------------------------------------------------------------
+  detect-version:
+    name: Detect branch version
+    needs: [validate, check-deadlinks]
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    uses: ./.github/workflows/_reusable-detect-version.yml
+
+  # ---------------------------------------------------------------------------
+  # 2d. Create the branch tag — non-main pushes only; existing tags are never moved
+  # ---------------------------------------------------------------------------
+  branch-tag:
+    name: Branch tag
+    needs: detect-version
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Create and push tag
+        env:
+          TAG: v${{ needs.detect-version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/$TAG")
+          if [ -n "$existing" ]; then
+            echo "Tag $TAG already exists; skipping"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+  # ---------------------------------------------------------------------------
+  # 3. Update floating tags — main only (e.g. v1 → latest v1.x.x, latest → newest release)
+  #    Allows consumers to pin to a major version: @v1, or to the newest release: @latest
   # ---------------------------------------------------------------------------
   float-major-tag:
-    name: Float major tag
+    name: Float major and latest tags
     needs: auto-tag
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -115,3 +179,10 @@ jobs:
           echo "Floating $MAJOR → $TAG"
           git tag -f "$MAJOR"
           git push origin "$MAJOR" --force
+
+      - name: Move latest floating tag
+        run: |
+          TAG="${{ needs.auto-tag.outputs.tag }}"
+          echo "Floating latest → $TAG"
+          git tag -f latest "$TAG"
+          git push origin latest --force
