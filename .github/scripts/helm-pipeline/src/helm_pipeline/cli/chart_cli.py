@@ -6,12 +6,13 @@ import os
 import shlex
 from pathlib import Path
 
+from helm_pipeline.charts.example_docs import ExampleDocs
 from helm_pipeline.charts.kind import CLUSTER_NAME
 from helm_pipeline.charts.pipeline import ChartPipeline
 from helm_pipeline.core.logging_config import configure_logging
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
-CHART_REQUIRED_COMMANDS = ('validate', 'check-version', 'next-version', 'render-diff', 'publish', 'package', 'kind-test')
+CHART_REQUIRED_COMMANDS = ('validate', 'check-version', 'next-version', 'render-diff', 'publish', 'package', 'kind-test', 'docs-examples')
 
 
 class ChartCli:
@@ -49,6 +50,10 @@ class ChartCli:
         package = commands.add_parser('package')
         package.add_argument('chart', nargs='?', default=os.environ.get('CHART'))
         package.add_argument('--destination', default='dist/packages')
+        docs = commands.add_parser('docs-examples')
+        docs.add_argument('chart', nargs='?', default=os.environ.get('CHART'))
+        docs.add_argument('--docs-dir', default='docs/voorbeelden')
+        docs.add_argument('--check', action='store_true', help='exit 1 instead of writing when the page is out of date')
         return parser
 
     def run(self, argv=None):
@@ -109,6 +114,15 @@ class ChartCli:
         elif args.command == 'publish':
             ci.publish(args.chart, os.environ.get('REGISTRY_HOST'), os.environ.get('REGISTRY_USERNAME'),
                        os.environ.get('REGISTRY_PASSWORD'))
+        elif args.command == 'docs-examples':
+            self.update_example_docs(args)
+
+    def update_example_docs(self, args):
+        """Regenerate the example page of one chart; with --check, exit 1 when the page is out of date."""
+        source = f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/{os.environ.get('GITHUB_REPOSITORY', '')}/tree/main"
+        changed = ExampleDocs(Path.cwd(), args.docs_dir, source).sync(args.chart, write=not args.check)
+        if args.check and changed:
+            raise SystemExit(1)
 
 
 def main():
