@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from helm_pipeline.charts.example_docs import END_MARKER, INSERT_BEFORE, START_MARKER, ExampleDocs
+from helm_pipeline.charts.example_docs import END_MARKER, INSERT_BEFORE, MANUAL_MARKER, START_MARKER, ExampleDocs
 
 # AI generated code: GitHub Copilot Claude Haiku 5.5
 SOURCE_URL = 'https://github.com/example/charts/tree/main'
@@ -105,6 +105,34 @@ class ExampleDocsTest(unittest.TestCase):
         self.assertTrue(self.example_docs.sync('charts/app', write=False))
         self.assertEqual(self.page.read_text(encoding='utf-8'), PAGE)
         self.assertNotIn(END_MARKER, self.page.read_text(encoding='utf-8'))
+
+    def test_hand_written_text_outside_the_markers_survives_regeneration(self):
+        """Test that custom prose around the generated section is kept when the chart version changes."""
+        self.example_docs.sync('charts/app')
+        text = self.page.read_text(encoding='utf-8')
+        self.page.write_text('Eigen intro.\n\n' + text + '\n## Eigen slot\n\nZelf geschreven.\n', encoding='utf-8')
+        self.write_app('0.2.0')
+        self.example_docs.sync('charts/app')
+        updated = self.page.read_text(encoding='utf-8')
+        self.assertTrue(updated.startswith('Eigen intro.'))
+        self.assertIn('## Eigen slot\n\nZelf geschreven.', updated)
+        self.assertIn('chart["app 0.2.0"]', updated)
+
+    def test_page_marked_as_manual_is_never_rewritten(self):
+        """Test that a page carrying the manual marker is left exactly as written, even when the chart changed."""
+        manual = f'{MANUAL_MARKER}\n# app\n\nHandmatig onderhouden.\n'
+        self.page.write_text(manual, encoding='utf-8')
+        self.assertFalse(self.example_docs.sync('charts/app'))
+        self.assertEqual(self.page.read_text(encoding='utf-8'), manual)
+
+    def test_custom_pages_in_a_subfolder_are_not_touched(self):
+        """Test that pages under a custom subfolder are never read or rewritten by the generator."""
+        custom = self.docs / 'custom'
+        custom.mkdir()
+        guide = custom / 'app.md'
+        guide.write_text(PAGE, encoding='utf-8')
+        self.example_docs.sync('charts/app')
+        self.assertEqual(guide.read_text(encoding='utf-8'), PAGE)
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ import yaml
 LOGGER = logging.getLogger(__name__)
 START_MARKER = '<!-- chart-deps:start -->'
 END_MARKER = '<!-- chart-deps:end -->'
+MANUAL_MARKER = '<!-- chart-deps:manual -->'
 INSERT_BEFORE = '## Minimaal'
 ARTIFACTHUB_SEARCH = 'https://artifacthub.io/packages/search?ts_query_web={name}'
 NO_DEPENDENCIES = 'Geen upstream dependencies.'
@@ -163,6 +164,9 @@ class ExampleDocs:
         if not page.is_file():
             raise ValueError(f'{name}: example page {page} is missing')
         text = page.read_text(encoding='utf-8')
+        if MANUAL_MARKER in text:
+            LOGGER.info('%s: page is maintained by hand, skipping', name)
+            return False
         rendered = self.render_page(text, self.block(directory))
         if rendered is None:
             raise ValueError(f'{name}: {page} has neither {START_MARKER} markers nor a {INSERT_BEFORE} section')
