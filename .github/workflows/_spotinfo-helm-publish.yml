@@ -175,7 +175,7 @@ jobs:
 
       - name: Install chart-pipeline
         if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
-        run: python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+        run: python -m pip install "spot-cli @ git+https://github.com/ITlusions/spotinfo-cli.git@main" "spot-cli-helm @ git+https://github.com/ITlusions/spotinfo-cli-plugins.git@main#subdirectory=plugins/helm" "spotinfo-sdk @ git+https://github.com/ITlusions/spotinfo-sdk.git@main"
 
       - name: Determine chart version
         if: steps.find-run.outputs.run-id == '' && inputs.fallback-build
