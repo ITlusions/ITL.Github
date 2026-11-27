@@ -1,0 +1,212 @@
+name: SpotINFO Helm Chart Pipeline
+
+# Detects changed charts in the caller repository and runs the reusable Helm CI for each one.
+
+on:
+  workflow_call:
+    inputs:
+      full-scan:
+        description: Test every non-ignored chart instead of only the changed ones
+        type: boolean
+        default: false
+      default-kube-version:
+        description: Kubernetes version for push and pull request runs
+        type: string
+        default: "1.36.4"
+      scheduled-kube-versions:
+        description: JSON array of Kubernetes versions used when full-scan is true
+        type: string
+        default: '["1.36.4"]'
+      profiles:
+        description: JSON array of objects with name and values (path relative to the chart)
+        type: string
+        default: '[{"name":"basic","values":"values.yaml"}]'
+      chart:
+        description: Test only this chart directory under charts/ (overrides change detection)
+        type: string
+        default: ""
+      security-summary-layout:
+        description: Job summary layout for security scans - classic, flat, sections, counts or expiry
+        type: string
+        default: classic
+      security-verify-exceptions:
+        description: Require a valid cosign signature bundle for each security exception file (off by default)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    name: List changed charts
+    runs-on: ubuntu-latest
+    outputs:
+      charts: ${{ steps.names.outputs.charts }}
+      security-charts: ${{ steps.security.outputs.security-charts }}
+      kube-versions: ${{ steps.kube.outputs.kube-versions }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install CI requirements
+        run: |
+          python -m pip install -r requirements-ci.txt
+          python -m pip install "spot-cli @ git+https://github.com/ITlusions/spotinfo-cli.git" "spot-cli-helm @ git+https://github.com/ITlusions/spotinfo-cli-plugins.git#subdirectory=plugins/helm" "spotinfo-sdk @ git+https://github.com/ITlusions/spotinfo-sdk.git"
+
+      - name: Select changed charts
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          FULL_SCAN: ${{ inputs.full-scan && '1' || '0' }}
+          CHART: ${{ inputs.chart }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ -n "$CHART" ]; then
+            [ -d "charts/$CHART" ] || { echo "charts/$CHART not found" >&2; exit 1; }
+            python -c "import json, os; print('affected=' + json.dumps(['charts/' + os.environ['CHART']]))" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$FULL_SCAN" = "1" ]; then
+            chart-pipeline changed --all
+          elif [ "$EVENT_NAME" = "push" ] && { [ "$REF_NAME" = "develop" ] || [ "$REF_NAME" = "main" ] || [ "$REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
+            chart-pipeline changed --base "$PUSH_BEFORE"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            chart-pipeline changed --base "$(git merge-base "origin/$PR_BASE_REF" "$PR_HEAD_SHA")" --develop "origin/$PR_BASE_REF"
+          else
+            base=develop
+            git rev-parse --verify -q origin/develop >/dev/null || base="$DEFAULT_BRANCH"
+            chart-pipeline changed --base "$(git merge-base "origin/$base" HEAD)"
+          fi
+
+      - name: Convert to chart names
+        id: names
+        env:
+          AFFECTED: ${{ steps.select.outputs.affected }}
+        run: |
+          python -c "import json, os; names = [chart.split('/')[-1] for chart in json.loads(os.environ['AFFECTED'])]; print('charts=' + json.dumps(names, separators=(',', ':')))" >> "$GITHUB_OUTPUT"
+
+      - name: Select charts with security scans
+        id: security
+        env:
+          AFFECTED: ${{ steps.select.outputs.affected }}
+        run: chart-pipeline security-charts
+
+      - name: Select Kubernetes versions
+        id: kube
+        env:
+          FULL_SCAN: ${{ inputs.full-scan && '1' || '0' }}
+          SCHEDULED_KUBE_VERSIONS: ${{ inputs.scheduled-kube-versions }}
+          DEFAULT_KUBE_VERSION: ${{ inputs.default-kube-version }}
+        run: |
+          if [ "$FULL_SCAN" = "1" ]; then
+            echo "kube-versions=$SCHEDULED_KUBE_VERSIONS" >> "$GITHUB_OUTPUT"
+          else
+            printf 'kube-versions=["%s"]\n' "$DEFAULT_KUBE_VERSION" >> "$GITHUB_OUTPUT"
+          fi
+
+  helm-ci:
+    name: Chart ${{ matrix.chart }} (${{ matrix.profile.name }}, k8s ${{ matrix.kube-version }})
+    needs: discover
+    if: needs.discover.outputs.charts != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJSON(needs.discover.outputs.charts) }}
+        profile: ${{ fromJSON(inputs.profiles) }}
+        kube-version: ${{ fromJSON(needs.discover.outputs.kube-versions) }}
+    uses: ITlusions/ITL.Github/.github/workflows/_spotinfo-helm-ci.yml@main
+    with:
+      chart-path: charts/${{ matrix.chart }}
+      values-files: charts/${{ matrix.chart }}/${{ matrix.profile.values }}
+      kube-version: ${{ matrix.kube-version }}
+      artifact-name: helm-chart-${{ matrix.chart }}-${{ matrix.profile.name }}-${{ matrix.kube-version }}
+    permissions:
+      contents: read
+
+  chart-security:
+    name: Security ${{ matrix.chart }}
+    needs: discover
+    if: needs.discover.outputs.security-charts != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJSON(needs.discover.outputs.security-charts) }}
+    uses: ITlusions/ITL.Github/.github/workflows/_spotinfo-helm-security.yml@main
+    with:
+      chart: ${{ matrix.chart }}
+      summary-layout: ${{ inputs.security-summary-layout }}
+      verify-exceptions: ${{ inputs.security-verify-exceptions }}
+    permissions:
+      contents: read
+
+  repository-secrets:
+    name: Secret scan (repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install CI requirements
+        run: |
+          python -m pip install -r requirements-ci.txt
+          python -m pip install "spot-cli @ git+https://github.com/ITlusions/spotinfo-cli.git" "spot-cli-helm @ git+https://github.com/ITlusions/spotinfo-cli-plugins.git#subdirectory=plugins/helm" "spotinfo-sdk @ git+https://github.com/ITlusions/spotinfo-sdk.git"
+
+      - name: Install gitleaks
+        run: security-scan setup-tools --directory dist/tools --tool gitleaks
+
+      - name: Scan git history for secrets
+        run: security-scan secrets
+
+  pipeline-cost:
+    name: Pipeline cost estimate
+    needs: [discover, helm-ci, chart-security, repository-secrets]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install CI requirements
+        run: |
+          python -m pip install -r requirements-ci.txt
+          python -m pip install "spot-cli @ git+https://github.com/ITlusions/spotinfo-cli.git" "spot-cli-helm @ git+https://github.com/ITlusions/spotinfo-cli-plugins.git#subdirectory=plugins/helm" "spotinfo-sdk @ git+https://github.com/ITlusions/spotinfo-sdk.git"
+
+      - name: Write total cost estimate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh run view "$RUN_ID" --repo "$REPOSITORY" --json jobs > jobs.json
+          security-scan pipeline-cost --jobs jobs.json
