@@ -1,0 +1,56 @@
+scope: CLI
+areas:
+  test_chart_requirements.py:
+    code: CRR
+    name: Chart requirement runner
+  test_chart_config.py:
+    code: CFG
+    name: Chart .ciconfig settings
+  test_chart_exceptions.py:
+    code: EXC
+    name: Chart exception files
+  test_example_docs.py:
+    code: DOC
+    name: Example page generation
+  test_exception_signature.py:
+    code: SIG
+    name: Exception signatures
+  test_exclusion_audit.py:
+    code: AUD
+    name: Exclusion audit
+  test_helm_client.py:
+    code: HLM
+    name: Helm dependency handling
+  test_kind_config.py:
+    code: KND
+    name: Kind test configuration
+  test_kubescape_report.py:
+    code: KSR
+    name: Kubescape report reader
+  test_kubescape_scanner.py:
+    code: KSC
+    name: Kubescape scanner
+  test_lock_check.py:
+    code: LCK
+    name: Chart.lock checks
+  test_pipeline_cost.py:
+    code: COST
+    name: Pipeline cost estimate
+  test_registry.py:
+    code: REG
+    name: Test registry
+  test_requirements.py:
+    code: REQ
+    name: Chart requirements
+  test_security_cli.py:
+    code: SCL
+    name: Security CLI failure log
+  test_security_summary.py:
+    code: SUM
+    name: Security job summary
+  test_tool_config.py:
+    code: TLC
+    name: Tool configuration
+  test_trivy_scanner.py:
+    code: TRV
+    name: Trivy scanner

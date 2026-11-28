@@ -79,7 +79,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install chart-pipeline
-        run: python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+        run: python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       - name: Read .ciconfig
         id: config
@@ -110,7 +110,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install chart-pipeline
-        run: python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+        run: python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       # Fails when this chart's Chart.lock pins an older version of a local dependency, so the chart must be updated.
       - name: Check dependency locks
@@ -150,7 +150,7 @@ jobs:
       - name: Install kubeconform
         if: ${{ (needs.config.outputs.kubeconform || format('{0}', inputs.kubeconform)) == 'true' }}
         run: |
-          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+          python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
           chart-pipeline setup-tools --directory dist/tools
 
       - name: Validate rendered manifests
@@ -190,7 +190,7 @@ jobs:
 
       - name: Install kind and kubectl
         run: |
-          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+          python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
           chart-pipeline setup-kind --directory dist/tools
 
       - name: Install and test chart scenario
@@ -201,7 +201,7 @@ jobs:
         run: chart-pipeline kind-test
 
   # Only packages charts whose lint and kind checks passed, so the artifact exists only for a passing chart.
-  # AI generated code: GitHub Copilot Claude Haiku 5.5
+  
   package:
     name: Package chart
     runs-on: ubuntu-latest
@@ -229,7 +229,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install chart-pipeline
-        run: python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+        run: python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       - name: Determine chart version
         id: version

@@ -56,10 +56,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install CI requirements
+      - name: Install helm-pipeline-cli
         run: |
-          python -m pip install -r requirements-ci.txt
-          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+          python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       - name: Select changed charts
         id: select
@@ -167,10 +166,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install CI requirements
+      - name: Install helm-pipeline-cli
         run: |
-          python -m pip install -r requirements-ci.txt
-          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+          python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       - name: Install gitleaks
         run: security-scan setup-tools --directory dist/tools --tool gitleaks
@@ -197,10 +195,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install CI requirements
+      - name: Install helm-pipeline-cli
         run: |
-          python -m pip install -r requirements-ci.txt
-          python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+          python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       - name: Write total cost estimate
         env:
