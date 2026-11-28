@@ -1,0 +1,64 @@
+name: Helm Example Docs
+
+# ---------------------------------------------------------------------------
+# Example caller for _managed-helm-docs.yml. Runs after Helm Publish succeeds on main
+# and opens one pull request per published chart that updates its example page.
+# ---------------------------------------------------------------------------
+on:
+  workflow_run:
+    workflows:
+      - "Helm Publish"
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helm-example-docs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Detect published charts
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      charts: ${{ steps.changed.outputs.charts }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install chart-pipeline
+        run: python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
+
+      - name: Find changed charts
+        id: changed
+        run: chart-pipeline changed --base HEAD~1
+
+  docs:
+    name: Example page for ${{ matrix.chart }}
+    needs: detect
+    if: needs.detect.outputs.charts != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJSON(needs.detect.outputs.charts) }}
+    uses: ITlusions/ITL.Github/.github/workflows/_managed-helm-docs.yml@main
+    with:
+      commit-sha: ${{ github.event.workflow_run.head_sha }}
+      chart-path: ${{ matrix.chart }}
+    permissions:
+      contents: write
+      pull-requests: write

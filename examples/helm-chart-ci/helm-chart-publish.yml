@@ -46,7 +46,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install chart-pipeline
-        run: python -m pip install "helm-ci @ git+https://github.com/ITlusions/ITL.Github.git@main"
+        run: python -m pip install "helm-pipeline-cli @ git+https://github.com/ITlusions/ITL.Github.git@main#subdirectory=cli/helm-pipeline-cli"
 
       - name: Find changed charts
         id: changed
